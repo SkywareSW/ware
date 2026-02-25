@@ -1,9 +1,11 @@
-# Ware Programming Language
+# Ware Language Reference
 
-Ware is a simple, readable programming language designed to look and feel like plain English. Files use the `.ware` extension and are run with the Ware interpreter.
+Ware is a simple, readable programming language designed to feel like plain English.
 
-```bash
-python3 ware.py myprogram.ware
+```
+python3 ware.py myprogram.ware     // run a file
+python3 ware.py                    // open the interactive REPL
+python3 ware.py build myprogram.ware  // build a standalone launcher
 ```
 
 ---
@@ -13,17 +15,16 @@ python3 ware.py myprogram.ware
 ```
 name is "Alice"
 age is 25
-score is 10 + 5
+price is 9.99
+active is true
+nothing_yet is nothing
 ```
 
-## Constants
-
-Constants can never be changed after being set.
+Use `constant` for values that should never change:
 
 ```
-constant MAX is 100
-constant PI is 3.14159
-show MAX
+constant MAX_SCORE is 100
+constant APP_NAME is "My App"
 ```
 
 ---
@@ -32,28 +33,29 @@ show MAX
 
 ```
 show "Hello, world!"
-show name
-show 5 + 3
-```
-
-## String Templates (f-strings)
-
-Embed expressions directly inside strings using `f"..."` and `{...}`.
-
-```
-name is "Alice"
-age is 25
+show age
+show age + 1
 show f"Hello {name}, you are {age} years old!"
-show f"Two plus two is {2 + 2}"
+```
+
+f-strings let you embed any expression inside `{ }`:
+
+```
+x is 10
+show f"Double x is {x * 2}"
+show f"Name in caps: {upper(name)}"
 ```
 
 ---
 
 ## Reading Input
 
+`read` automatically converts numbers — you don't need to convert manually:
+
 ```
-read name
-show "You entered: " + name
+show "Enter your age:"
+read age
+show age + 1       // works as a number if you typed one
 ```
 
 ---
@@ -61,25 +63,116 @@ show "You entered: " + name
 ## Math
 
 ```
-x is 10 + 5
-x is 10 - 3
-x is 4 * 2
-x is 10 / 2
-x is 17 % 5     // remainder (modulo)
+show 10 + 5
+show 10 - 3
+show 4 * 2
+show 10 / 3
+show 17 % 5        // remainder
+show 2 * (3 + 4)
+show -x            // negation
 ```
 
-**Built-in math functions:**
+**Math functions:**
+
+| Function | What it does | Example |
+|---|---|---|
+| `sqrt(x)` | Square root | `sqrt(16)` → 4 |
+| `power(x, n)` | x to the power of n | `power(2, 8)` → 256 |
+| `abs(x)` | Absolute value | `abs(-5)` → 5 |
+| `round(x, n)` | Round to n decimal places | `round(3.14159, 2)` → 3.14 |
+| `floor(x)` | Round down | `floor(4.9)` → 4 |
+| `ceil(x)` | Round up | `ceil(4.1)` → 5 |
+| `log(x)` | Natural logarithm | `log(100)` |
+| `sin(x)` | Sine | `sin(pi)` |
+| `cos(x)` | Cosine | `cos(0)` |
+| `clamp(x, min, max)` | Keep x between min and max | `clamp(15, 0, 10)` → 10 |
+| `to_fixed(x, n)` | Format number to n decimal places as text | `to_fixed(3.14159, 2)` → "3.14" |
+| `to_hex(x)` | Convert to hex string | `to_hex(255)` → "ff" |
+| `to_bin(x)` | Convert to binary string | `to_bin(10)` → "1010" |
+| `random()` | Random decimal between 0 and 1 | `random()` |
+| `random_int(a, b)` | Random whole number from a to b | `random_int(1, 6)` |
+| `pi` | The value of π | `pi` → 3.14159... |
+
+---
+
+## Strings
+
+**Creating strings:**
+```
+greeting is "Hello, world!"
+empty is ""
+```
+
+**Combining strings:**
+```
+full_name is "Alice" + " " + "Smith"
+repeated is "ha" * 3       // "hahaha"
+```
+
+**String functions:**
+
+| Function | What it does | Example |
+|---|---|---|
+| `length(s)` | Number of characters | `length("hello")` → 5 |
+| `upper(s)` | All uppercase | `upper("hi")` → "HI" |
+| `lower(s)` | All lowercase | `lower("HI")` → "hi" |
+| `trim(s)` | Remove whitespace from both ends | `trim("  hi  ")` → "hi" |
+| `strip_chars(s, chars)` | Remove specific characters from ends | `strip_chars("***hi***", "*")` → "hi" |
+| `replace(s, old, new)` | Replace all occurrences | `replace("hi world", "world", "ware")` |
+| `slice(s, from, to)` | Get a section (1-indexed) | `slice("hello", 2, 4)` → "ell" |
+| `char_at(s, i)` | Get character at position (1-indexed) | `char_at("hello", 1)` → "h" |
+| `find(s, sub)` | Position of substring (0 if not found) | `find("hello", "ll")` → 3 |
+| `count(s, sub)` | Count occurrences of substring | `count("hello", "l")` → 2 |
+| `repeat(s, n)` | Repeat string n times | `repeat("ha", 3)` → "hahaha" |
+| `pad_left(s, n)` | Pad with spaces on the left to width n | `pad_left("42", 6)` → "    42" |
+| `pad_left(s, n, c)` | Pad with character c on the left | `pad_left("42", 6, "0")` → "000042" |
+| `pad_right(s, n)` | Pad with spaces on the right | `pad_right("hi", 6)` → "hi    " |
+| `pad_right(s, n, c)` | Pad with character c on the right | `pad_right("hi", 6, "-")` → "hi----" |
+| `split(s, sep)` | Split into a list | `split("a,b,c", ",")` → ["a","b","c"] |
+| `join(list, sep)` | Join a list into a string | `join(["a","b","c"], "-")` → "a-b-c" |
+| `words(s)` | Split into list of words | `words("one two three")` |
+| `lines(s)` | Split into list of lines | `lines("a\nb\nc")` |
+| `to_chars(s)` | Split into list of characters | `to_chars("hi")` → ["h","i"] |
+| `contains(s, sub)` | Check if string contains substring | `contains("hello", "ell")` → true |
+| `starts(s, sub)` | Check if string starts with substring | `starts("hello", "he")` → true |
+| `ends(s, sub)` | Check if string ends with substring | `ends("hello", "lo")` → true |
+
+**String checking functions:**
+
+| Function | What it does | Example |
+|---|---|---|
+| `is_empty(s)` | True if string has no characters | `is_empty("")` → true |
+| `is_upper(s)` | True if all letters are uppercase | `is_upper("HI")` → true |
+| `is_lower(s)` | True if all letters are lowercase | `is_lower("hi")` → true |
+| `is_numeric(s)` | True if string looks like a number | `is_numeric("42")` → true |
+| `is_alpha(s)` | True if string contains only letters | `is_alpha("hello")` → true |
+
+**Converting:**
+
+| Function | What it does |
+|---|---|
+| `number(s)` | Convert text to a number |
+| `text(x)` | Convert anything to text |
+
+---
+
+## Booleans
 
 ```
-show sqrt(16)
-show power(2, 8)
-show abs(-5)
-show round(3.14159, 2)
-show floor(4.9)
-show ceil(4.1)
-show log(100)
-show sin(pi)
-show cos(0)
+active is true
+done is false
+
+if active is true,
+    show "still going!"
+.
+```
+
+`and`, `or`, `not` work as expected:
+
+```
+if age is bigger than 18 and active is true,
+    show "eligible"
+.
 ```
 
 ---
@@ -87,38 +180,19 @@ show cos(0)
 ## Comparisons
 
 ```
-if x is 10,
-    show "x equals 10"
-.
+x is 7
 
-if x is not 5,
-    show "x is not 5"
-.
-
-if x is bigger than 7,
-    show "x is bigger than 7"
-.
-
-if x is smaller than 20,
-    show "x is smaller than 20"
-.
+if x is 10,           // equals
+if x is not 10,       // not equals
+if x is bigger than 5,
+if x is smaller than 10,
 ```
 
----
-
-## Logic
+You can chain comparisons using `and`:
 
 ```
-if x is bigger than 5 and x is smaller than 20,
-    show "x is between 5 and 20"
-.
-
-if x is 1 or x is 10,
-    show "x is 1 or 10"
-.
-
-if not x is 0,
-    show "x is not zero"
+if x is bigger than 5 and x is smaller than 10,
+    show "between 5 and 10"
 .
 ```
 
@@ -127,10 +201,10 @@ if not x is 0,
 ## If / Else
 
 ```
-if name is "Alice",
-    show "Hey Alice!"
+if score is bigger than 90,
+    show "A grade"
 else,
-    show "Who are you?"
+    show "Keep trying"
 .
 ```
 
@@ -148,13 +222,29 @@ while count is smaller than 6,
 
 ---
 
-## During Loop
-
-Counter starts at `1`.
+## During Loop (count from 1 to n)
 
 ```
 during i, range(5),
     show i
+.
+```
+
+---
+
+## For Each Loop
+
+Loop over a list, dictionary keys, or any iterable:
+
+```
+fruits is ["apple", "banana", "cherry"]
+for each fruit in fruits,
+    show fruit
+.
+
+scores is {"Alice": 95, "Bob": 87}
+for each name in scores,
+    show name
 .
 ```
 
@@ -167,8 +257,92 @@ during i, range(10),
     if i is 5,
         break
     .
+    if i is 3,
+        continue
+    .
     show i
 .
+```
+
+---
+
+## Lists
+
+```
+fruits is ["apple", "banana", "cherry"]
+nums is [10, 20, 30]
+mixed is "hello" and 42 and true
+```
+
+Lists are **1-indexed** — the first item is at position 1:
+
+```
+show fruits[1]           // "apple"
+fruits[2] is "mango"     // update an item
+add to fruits, "grape"   // add to end
+```
+
+**List functions:**
+
+| Function | What it does |
+|---|---|
+| `size(list)` | Number of items |
+| `length(list)` | Same as size |
+| `first(list)` | First item |
+| `last(list)` | Last item |
+| `is_empty(list)` | True if list has no items |
+| `has(list, item)` | True if item is in list |
+| `index_of(list, item)` | Position of item (0 if not found) |
+| `count_in(list, item)` | How many times item appears |
+| `reverse(list)` | New list in reverse order |
+| `sort(list)` | New sorted list |
+| `remove(list, i)` | New list without item at position i |
+| `unique(list)` | New list with duplicates removed |
+| `flatten(list)` | Flatten a nested list one level |
+| `sum_list(list)` | Sum of all numbers |
+| `max_of(list)` | Largest value |
+| `min_of(list)` | Smallest value |
+| `any_true(list)` | True if any item is true |
+| `all_true(list)` | True if all items are true |
+
+---
+
+## Dictionaries
+
+```
+person is {"name": "Alice", "age": 25, "city": "London"}
+
+show person["name"]       // "Alice"
+person["age"] is 26       // update a value
+```
+
+**Dictionary functions:**
+
+| Function | What it does |
+|---|---|
+| `keys(dict)` | List of all keys |
+| `values(dict)` | List of all values |
+| `has_key(dict, key)` | True if key exists |
+| `is_empty(dict)` | True if dict has no entries |
+| `size(dict)` | Number of entries |
+
+---
+
+## Type Checking
+
+```
+show type_of("hello")     // text
+show type_of(42)          // number
+show type_of([1, 2])      // list
+show type_of({})          // dict
+show type_of(true)        // bool
+show type_of(nothing)     // nothing
+
+show is_text("hi")        // true
+show is_number(42)        // true
+show is_list([1, 2])      // true
+show is_dict({})          // true
+show is_bool(true)        // true
 ```
 
 ---
@@ -177,7 +351,7 @@ during i, range(10),
 
 ```
 function greet which has name,
-    show "Hello, " + name + "!"
+    show f"Hello, {name}!"
 .
 
 greet("Alice")
@@ -193,83 +367,92 @@ function double which has x,
 show double(5)
 ```
 
+**Default parameter values:**
+
+```
+function greet which has name, greeting = "Hello",
+    show f"{greeting}, {name}!"
+.
+
+greet("Alice")            // Hello, Alice!
+greet("Bob", "Hey")       // Hey, Bob!
+```
+
 **Multiple return values:**
 
 ```
 function minmax which has nums,
-    return first(sort(nums)), last(sort(nums))
+    return min_of(nums), max_of(nums)
 .
 
-lo, hi is minmax([3, 1, 9, 2, 7])
+lo, hi is minmax([5, 2, 8, 1, 9])
 show f"min={lo}  max={hi}"
 ```
 
----
-
-## Lists
-
-**Create a list:**
+**Zero-parameter functions:**
 
 ```
-fruits is "apple" and "banana" and "cherry"
-nums is [10, 20, 30, 40, 50]
-```
-
-Lists are **1-indexed** — the first item is at position `1`.
-
-```
-show fruits[1]       // apple
-fruits[2] is "mango" // update an item
-add to fruits, "watermelon"
-```
-
-**Built-in list functions:**
-
-```
-show size(fruits)
-show first(fruits)
-show last(fruits)
-show reverse(fruits)
-show sort([3, 1, 4, 1, 5])
-show remove(fruits, 2)    // removes item at position 2
-show has(fruits, "apple") // true or false
+function say_hi which has,
+    show "Hi!"
+.
 ```
 
 ---
 
-## String Functions
+## Closures / Nested Functions
+
+Functions defined inside other functions remember the outer scope:
 
 ```
-show length("hello")        // 5
-show upper("ware")          // WARE
-show lower("WARE")          // ware
-show trim("  hello  ")      // hello
-show replace("hi world", "world", "ware")
-show contains("hello ware", "ware")  // true
-show starts("hello", "he")           // true
-show ends("hello", "lo")             // true
-show slice("hello ware", 7, 10)      // ware
-show split("a,b,c", ",")             // [a, b, c]
-show join(["a","b","c"], "-")        // a-b-c
-show number("42")                    // 42
-show text(100)                       // "100"
+function make_counter which has start,
+    count is start
+    function increment which has amount = 1,
+        count is count + amount
+        return count
+    .
+    return increment
+.
+
+counter is make_counter(0)
+show counter(1)    // 1
+show counter(1)    // 2
+show counter(5)    // 7
 ```
 
 ---
 
-## Type Checking
+## Classes
 
 ```
-show is_number(42)       // true
-show is_text("hi")       // true
-show is_list([1, 2, 3])  // true
+class Animal,
+    function init which has name, sound,
+        self.name is name
+        self.sound is sound
+    .
+    function speak which has,
+        show f"{self.name} says {self.sound}!"
+    .
+    function rename which has new_name,
+        self.name is new_name
+    .
+.
+
+dog is new Animal("Rex", "woof")
+dog.speak()               // Rex says woof!
+show dog.name             // Rex
+dog.rename("Max")
+dog.speak()               // Max says woof!
 ```
+
+- Use `class Name,` to define a class
+- `function init` runs automatically when you use `new`
+- Use `self.fieldname` to store and read object data
+- Create objects with `new ClassName(args)`
+- Call methods with `obj.method(args)`
 
 ---
 
 ## Error Handling
-
-Use `try` and `catch` to handle errors gracefully. The `catch` variable holds the error message.
 
 ```
 try,
@@ -283,30 +466,21 @@ catch err,
 
 ## File Reading and Writing
 
-**Read a file:**
-
 ```
+// Read a file into a variable
 open "notes.txt" as content
 show content
-```
 
-**Write to a file:**
-
-```
+// Write to a file (creates or overwrites)
 write("output.txt", "Hello from Ware!")
-```
 
-**Append to a file:**
-
-```
-append("log.txt", "New line added")
+// Append a line to a file
+append("log.txt", "New entry added")
 ```
 
 ---
 
 ## Importing Other Files
-
-Split your code across multiple `.ware` files and import them.
 
 ```
 // utils.ware
@@ -325,28 +499,40 @@ show double(5)
 
 ## GUI
 
-Build simple graphical windows with built-in GUI commands. Requires Python's `tkinter` to be installed.
+Build simple desktop windows. Requires Python's `tkinter`.
 
 ```
 make window "My App" size 400, 300
 
-make label "Welcome to Ware!"
+make label "What is your name?"
 make textbox userName
 
 make button "Say Hello" on click,
     show f"Hello {userName}!"
 .
-
 ```
-
-**GUI commands:**
 
 | Command | What it does |
 |---|---|
 | `make window "Title" size w, h` | Create a window |
 | `make label "text"` | Add a text label |
-| `textbox varName` | Add a text input box |
-| `make button "text" on click, ... .` | Add a clickable button |
+| `make textbox varName` | Add a text input — the variable holds whatever is typed |
+| `make button "text" on click, ... .` | Add a clickable button with a body of code |
+
+---
+
+## Variables Inspector
+
+Type `vars` anywhere to see all current variables and their values:
+
+```
+name is "Alice"
+age is 25
+vars
+// shows:
+//   age = 25
+//   name = Alice
+```
 
 ---
 
@@ -354,48 +540,7 @@ make button "Say Hello" on click,
 
 ```
 // This is a comment
-name is "Ware"  // inline comment
-```
-
----
-
-## Booleans
-
-```
-flag is true
-
-if flag is true,
-    show "flag is on"
-.
-```
-
----
-
-## Full Example — Number Guessing Game
-
-```
-// Number guessing game
-
-constant SECRET is 7
-guess is 0
-tries is 0
-
-show "Guess a number between 1 and 10:"
-
-while guess is not SECRET,
-    read guess
-    tries is tries + 1
-
-    if guess is smaller than SECRET,
-        show "Too low! Try again:"
-    .
-
-    if guess is bigger than SECRET,
-        show "Too high! Try again:"
-    .
-.
-
-show f"You got it in {tries} tries!"
+name is "Ware"   // inline comment
 ```
 
 ---
@@ -404,38 +549,78 @@ show f"You got it in {tries} tries!"
 
 | Syntax | What it does |
 |---|---|
-| `x is 5` | Assign variable |
-| `constant x is 5` | Assign constant |
+| `x is value` | Assign variable |
+| `constant x is value` | Assign constant (can't change) |
 | `show x` | Print to screen |
 | `show f"Hi {name}"` | Print with template |
-| `read x` | Get user input |
-| `if ... , ... .` | Conditional |
-| `if ... , ... else, ... .` | If / else |
-| `while ... , ... .` | While loop |
+| `read x` | Get user input (auto-detects type) |
+| `if cond, ... .` | Conditional |
+| `if cond, ... else, ... .` | If / else |
+| `while cond, ... .` | While loop |
 | `during i, range(n), ... .` | Count loop (1 to n) |
+| `for each x in list, ... .` | Loop over items |
 | `function f which has x, ... .` | Define function |
+| `function f which has x = 5, ... .` | Function with default param |
+| `function f which has, ... .` | Function with no params |
 | `return a, b` | Return multiple values |
 | `a, b is f()` | Capture multiple returns |
-| `x is "a" and "b"` | Create list |
-| `x is [1, 2, 3]` | Create list (literal) |
-| `x[1]` | Access list item (1-indexed) |
-| `x[2] is "val"` | Update list item |
-| `add to x, "item"` | Append to list |
+| `x is [1, 2, 3]` | Create list |
+| `x[1]` | Access item (1-indexed) |
+| `x[1] is val` | Update item |
+| `add to x, item` | Append to list |
+| `x is {"a": 1}` | Create dictionary |
+| `x["key"]` | Access dict value |
 | `import "file.ware"` | Import another file |
-| `open "file.txt" as x` | Read file into variable |
-| `write("file.txt", "text")` | Write to file |
+| `open "file.txt" as x` | Read file |
+| `write("file.txt", "text")` | Write file |
 | `append("file.txt", "text")` | Append to file |
 | `try, ... catch err, ... .` | Error handling |
-| `make window "Title" size w, h` | Create GUI window |
-| `make label "text"` | GUI text label |
+| `class Name, ... .` | Define a class |
+| `new ClassName(args)` | Create an object |
+| `obj.method()` | Call a method |
+| `self.field is val` | Set object field |
+| `make window "T" size w, h` | GUI window |
+| `make label "text"` | GUI label |
 | `make textbox name` | GUI input box |
-| `make button "text" on click, ... .` | GUI button |
+| `make button "t" on click, ... .` | GUI button |
+| `vars` | Show all variables |
 | `break` | Exit loop |
 | `continue` | Skip to next iteration |
-| `// comment` | Comment |
-| `true` / `false` | Boolean values |
+| `// text` | Comment |
+| `true` / `false` / `nothing` | Boolean / null |
+| `and` / `or` / `not` | Logic |
 | `is` / `is not` | Equal / not equal |
 | `is bigger than` | Greater than |
 | `is smaller than` | Less than |
-| `and` / `or` / `not` | Logic operators |
 | `+` `-` `*` `/` `%` | Math operators |
+| `"ha" * 3` | String repeat |
+
+---
+
+## Full Example — Gradebook
+
+```
+// Simple gradebook program
+
+constant PASS_MARK is 50
+
+scores is {"Alice": 88, "Bob": 42, "Charlie": 95, "Dana": 67}
+
+passed is 0
+failed is 0
+
+for each name in scores,
+    grade is scores[name]
+    if grade is bigger than PASS_MARK,
+        show f"{name}: {grade} — PASS"
+        passed is passed + 1
+    else,
+        show f"{name}: {grade} — FAIL"
+        failed is failed + 1
+    .
+.
+
+total is passed + failed
+show f"\n{passed} passed out of {total}"
+show f"Pass rate: {to_fixed(passed / total * 100, 1)}%"
+```
