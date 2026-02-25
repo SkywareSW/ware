@@ -62,19 +62,19 @@ x is 10
 
 if x is 10,
     show "x equals 10"
-end
+.
 
 if x is not 5,
     show "x is not 5"
-end
+.
 
 if x is bigger than 7,
     show "x is bigger than 7"
-end
+.
 
 if x is smaller than 20,
     show "x is smaller than 20"
-end
+.
 ```
 
 ---
@@ -86,15 +86,15 @@ Combine conditions with `and`, `or`, and `not`.
 ```
 if x is bigger than 5 and x is smaller than 20,
     show "x is between 5 and 20"
-end
+.
 
 if x is 1 or x is 10,
     show "x is 1 or 10"
-end
+.
 
 if not x is 0,
     show "x is not zero"
-end
+.
 ```
 
 ---
@@ -108,7 +108,7 @@ if name is "Alice",
     show "Hey Alice!"
 else,
     show "Who are you?"
-end
+.
 ```
 
 ---
@@ -123,7 +123,7 @@ count is 1
 while count is smaller than 6,
     show count
     count is count + 1
-end
+.
 ```
 
 ---
@@ -135,7 +135,7 @@ Repeats a block a set number of times. The counter starts at `1`.
 ```
 during i, range(5),
     show i
-end
+.
 ```
 
 This prints `1` through `5`.
@@ -150,18 +150,18 @@ Use `break` to exit a loop early, and `continue` to skip to the next iteration.
 during i, range(10),
     if i is 5,
         break
-    end
+    .
     show i
-end
+.
 ```
 
 ```
 during i, range(5),
     if i is 3,
         continue
-    end
+    .
     show i
-end
+.
 ```
 
 ---
@@ -173,7 +173,7 @@ Define a function with `function`, give it a name, and list its parameters after
 ```
 function greet which has name,
     show "Hello, " + name + "!"
-end
+.
 
 greet("Alice")
 greet("Bob")
@@ -184,7 +184,7 @@ Functions can also return a value using `return`.
 ```
 function add which has a, b,
     return a + b
-end
+.
 
 result is add(3, 4)
 show result
@@ -233,7 +233,7 @@ flag is true
 
 if flag is true,
     show "flag is on"
-end
+.
 ```
 
 ---
@@ -257,12 +257,12 @@ while guess is not secret,
 
     if guess is smaller than secret,
         show "Too low! Try again:"
-    end
+    .
 
     if guess is bigger than secret,
         show "Too high! Try again:"
-    end
-end
+    .
+.
 
 show "You got it in " + tries + " tries!"
 ```
@@ -276,11 +276,11 @@ show "You got it in " + tries + " tries!"
 | `x is 5` | Assign variable |
 | `show x` | Print to screen |
 | `read x` | Get user input |
-| `if ... , ... end` | Conditional |
-| `if ... , ... else, ... end` | If / else |
-| `while ... , ... end` | While loop |
-| `during i, range(n), ... end` | Count loop (1 to n) |
-| `function f which has x, ... end` | Define function |
+| `if ... , ... .` | Conditional |
+| `if ... , ... else, ... .` | If / else |
+| `while ... , ... .` | While loop |
+| `during i, range(n), ... .` | Count loop (1 to n) |
+| `function f which has x, ... .` | Define function |
 | `f(x)` | Call function |
 | `return x` | Return from function |
 | `x is "a" and "b" and "c"` | Create list |
