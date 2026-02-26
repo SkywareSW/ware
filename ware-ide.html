@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ware IDE</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d14;--sur:#13131f;--sur2:#1a1a2e;--bdr:#2a2a45;--acc:#7c6af7;--acc2:#f97fb2;--acc3:#5ef0c0;--txt:#e8e6ff;--mut:#6b68a0;--err:#ff6b8a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px;border-bottom:1px solid var(--bdr);background:var(--sur);flex-shrink:0;}
+.logo{font-size:17px;font-weight:800;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo small{font-size:9px;letter-spacing:2px;font-weight:400;-webkit-text-fill-color:var(--mut);display:block;margin-top:-3px;}
+.sp{flex:1;}
+select.ex{background:var(--sur2);border:1px solid var(--bdr);color:var(--txt);font-family:'Syne',sans-serif;font-size:12px;padding:4px 8px;border-radius:6px;cursor:pointer;outline:none;}
+button{display:flex;align-items:center;gap:5px;border:none;padding:6px 14px;border-radius:7px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-ghost{background:none;border:1px solid var(--bdr);color:var(--mut);}
+.btn-ghost:hover{border-color:var(--acc);color:var(--acc);}
+.btn-run{background:var(--acc);color:#fff;}
+.btn-run:hover{background:#9b8df8;transform:translateY(-1px);}
+.btn-run.busy{background:var(--mut);pointer-events:none;}
+.workspace{display:flex;flex:1;overflow:hidden;}
+/* sidebar */
+.sb{width:180px;background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-hd{font-size:9px;letter-spacing:2px;color:var(--mut);text-transform:uppercase;padding:10px 12px 6px;border-bottom:1px solid var(--bdr);}
+.fl{flex:1;overflow-y:auto;padding:4px 0;}
+.fi{display:flex;align-items:center;gap:6px;padding:5px 12px;font-family:'Syne Mono',monospace;font-size:11px;color:var(--mut);cursor:pointer;transition:.1s;position:relative;}
+.fi:hover{background:var(--sur2);color:var(--txt);}
+.fi.on{background:rgba(124,106,247,.12);color:var(--acc);}
+.fi.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--acc);}
+.fdel{margin-left:auto;opacity:0;font-size:13px;padding:0 2px;border-radius:2px;line-height:1;cursor:pointer;}
+.fi:hover .fdel{opacity:.4;}.fdel:hover{opacity:1!important;background:var(--bdr);}
+.sb-ft{padding:7px 9px;border-top:1px solid var(--bdr);}
+.nf{width:100%;padding:6px;border:1px dashed var(--bdr);border-radius:5px;background:none;color:var(--mut);font-family:'Syne',sans-serif;font-size:10px;cursor:pointer;transition:.15s;letter-spacing:.5px;}
+.nf:hover{border-color:var(--acc);color:var(--acc);}
+/* editor */
+.ep{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.tabs{display:flex;align-items:center;background:var(--sur);border-bottom:1px solid var(--bdr);height:32px;flex-shrink:0;overflow-x:auto;}
+.tab{display:flex;align-items:center;gap:6px;padding:0 13px;height:32px;font-size:11px;font-family:'Syne Mono',monospace;color:var(--mut);cursor:pointer;border-right:1px solid var(--bdr);white-space:nowrap;transition:.1s;flex-shrink:0;position:relative;}
+.tab.on{background:var(--bg);color:var(--txt);}
+.tab.on::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--acc);}
+.tx{opacity:0;font-size:14px;line-height:1;width:13px;text-align:center;border-radius:2px;cursor:pointer;}
+.tab:hover .tx{opacity:.4;}.tx:hover{opacity:1!important;background:var(--bdr);}
+.eb{flex:1;display:flex;overflow:hidden;background:var(--bg);}
+.lns{width:44px;padding:12px 0;background:var(--sur);border-right:1px solid var(--bdr);flex-shrink:0;overflow:hidden;user-select:none;}
+.ln{display:block;text-align:right;padding-right:9px;font-family:'Syne Mono',monospace;font-size:12px;line-height:1.7;color:var(--mut);opacity:.4;}
+.ln.cur{opacity:1;color:var(--acc);}
+.es{flex:1;overflow:auto;position:relative;}
+textarea{position:relative;z-index:2;width:100%;min-height:100%;padding:12px 16px;background:transparent;border:none;outline:none;resize:none;font-family:'Syne Mono',monospace;font-size:13px;line-height:1.7;color:transparent;caret-color:#f97fb2;tab-size:4;white-space:pre;overflow-wrap:normal;overflow-x:auto;display:block;}
+#highlight{position:absolute;z-index:1;top:0;left:0;width:100%;min-height:100%;padding:12px 16px;font-family:'Syne Mono',monospace;font-size:13px;line-height:1.7;white-space:pre;overflow-wrap:normal;pointer-events:none;tab-size:4;word-break:normal;}
+/* token colors */
+.tk{color:#e8e6ff;}
+.tk-kw{color:#c084fc;font-weight:500;}
+.tk-kw2{color:#67e8f9;}
+.tk-fn{color:#fbbf24;}
+.tk-str{color:#86efac;}
+.tk-fst{color:#6ee7b7;}
+.tk-fi{color:#f0abfc;}
+.tk-num{color:#fb923c;}
+.tk-bool{color:#fb923c;font-style:italic;}
+.tk-cmt{color:#4a4870;font-style:italic;}
+.tk-blk{color:#a78bfa;font-weight:700;}
+.tk-op{color:#94a3b8;}
+.tk-self{color:#f97fb2;font-weight:500;}
+/* output */
+.op{width:350px;border-left:1px solid var(--bdr);display:flex;flex-direction:column;flex-shrink:0;background:var(--bg);}
+.oh{display:flex;align-items:center;gap:8px;padding:0 13px;height:32px;background:var(--sur);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+.ot{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);flex:1;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mut);transition:.3s;}
+.dot.ok{background:var(--acc3);box-shadow:0 0 5px var(--acc3);}
+.dot.err{background:var(--err);box-shadow:0 0 5px var(--err);}
+.dot.run{background:var(--acc);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+.os{flex:1;overflow-y:auto;padding:12px 14px;font-family:'Syne Mono',monospace;font-size:12px;line-height:1.85;}
+.ol{display:block;animation:si .1s ease forwards;opacity:0;}
+@keyframes si{from{opacity:0;transform:translateX(-2px);}to{opacity:1;transform:none;}}
+.ol.e{color:var(--err);}.ol.s{color:var(--mut);font-style:italic;}
+.oe{color:var(--mut);font-size:11px;text-align:center;margin-top:44px;opacity:.5;font-style:italic;}
+.ib{display:none;padding:9px 12px;border-top:1px solid var(--bdr);background:var(--sur2);flex-shrink:0;gap:7px;align-items:center;}
+.ib.show{display:flex;}
+.il{color:var(--acc3);font-family:'Syne Mono',monospace;font-size:12px;flex-shrink:0;}
+.if{flex:1;background:var(--bg);border:1px solid var(--acc);color:var(--txt);font-family:'Syne Mono',monospace;font-size:12px;padding:4px 8px;border-radius:4px;outline:none;}
+.ig{background:var(--acc3);border:none;color:var(--bg);padding:4px 11px;border-radius:4px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.rz{width:4px;background:var(--bdr);cursor:col-resize;flex-shrink:0;transition:.15s;}
+.rz:hover{background:var(--acc);}
+.ib2{height:22px;border-top:1px solid var(--bdr);background:var(--sur);display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0;}
+.ii{font-size:10px;color:var(--mut);}
+.ii b{color:var(--txt);font-weight:400;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--mut);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Ware IDE <small>v3.0</small></div>
+  <div class="sp"></div>
+  <select class="ex" onchange="loadEx(this.value)"><option value="">Examples...</option></select>
+  <button class="btn-ghost" onclick="clearOut()">Clear</button>
+  <button class="btn-run" id="runBtn" onclick="runCode()">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>Run
+  </button>
+</header>
+<div class="workspace">
+  <div class="sb">
+    <div class="sb-hd">Files</div>
+    <div class="fl" id="fl"></div>
+    <div class="sb-ft"><button class="nf" onclick="newFile()">+ New File</button></div>
+  </div>
+  <div class="ep">
+    <div class="tabs" id="tabs"></div>
+    <div class="eb">
+      <div class="lns" id="lns"></div>
+      <div class="es" id="es">
+        <pre id="highlight" aria-hidden="true"></pre>
+        <textarea id="code" spellcheck="false"
+          oninput="onEdit()" onkeydown="onKey(event)"
+          onscroll="syncScroll(this)"
+          onclick="updCur()" onkeyup="updCur()"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="rz" id="rz"></div>
+  <div class="op" id="op">
+    <div class="oh"><span class="ot">Output</span><div class="dot" id="dot"></div></div>
+    <div class="os" id="os"><div class="oe" id="oe">Run your code to see output here</div></div>
+    <div class="ib" id="ib">
+      <span class="il">›</span>
+      <input class="if" id="if" placeholder="Enter input and press ↵" onkeydown="if(event.key==='Enter')subInput()">
+      <button class="ig" onclick="subInput()">↵</button>
+    </div>
+  </div>
+</div>
+<div class="ib2">
+  <div class="ii">Ln <b id="iL">1</b></div>
+  <div class="ii">Col <b id="iC">1</b></div>
+  <div class="ii">Lines <b id="iT">1</b></div>
+  <div class="ii" style="margin-left:auto;font-size:9px">Ware 3.0 · Pure JS · No dependencies</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// WARE INTERPRETER (JavaScript)
+// ═══════════════════════════════════════════════════════════════════
+
+class ReturnSignal { constructor(v){this.value=v;} }
+class BreakSignal {}
+class ContinueSignal {}
+class WareError extends Error { constructor(m){super(m);this.name='WareError';} }
+class WareClass { constructor(n,m){this.name=n;this.methods=m;} }
+class WareInstance { constructor(k){this.klass=k;this.fields={};} toString(){return `<${this.klass.name}>`} }
+
+const KWS=new Set('while during for each in if else try catch function which has read show add to break continue range and or not is bigger smaller than return import constant make window button label textbox on click open as class new self nothing vars'.split(' '));
+
+function tokenize(src, file='<input>') {
+  const toks=[], pats=[
+    ['CMT', /^\/\/[^\n]*/],
+    ['FST', /^f"[^"]*"/],
+    ['NUM', /^\d+(\.\d+)?/],
+    ['STR', /^"[^"]*"/],
+    ['BOL', /^(true|false)\b/],
+    ['IDN', /^[a-zA-Z_][a-zA-Z0-9_]*/],
+    ['DOT', /^\./],
+    ['OPR', /^[+\-*/\(\)\[\]{}%=]/],
+    ['COM', /^,/],
+    ['CLN', /^:/],
+    ['NL',  /^\n/],
+    ['SKP', /^[ \t]+/],
+  ];
+  let pos=0, line=1, lh=false;
+  while(pos<src.length){
+    let ok=false;
+    for(const [k,re] of pats){
+      const m=src.slice(pos).match(re);
+      if(!m) continue;
+      const v=m[0]; pos+=v.length;
+      if(k==='NL'){line++;lh=false;ok=true;break;}
+      if(k==='SKP'||k==='CMT'){ok=true;break;}
+      if(k==='DOT'){toks.push([lh?'DOT':'BLK',v,line,file]);lh=true;ok=true;break;}
+      if(k==='IDN'&&KWS.has(v)){toks.push(['KW',v,line,file]);lh=true;ok=true;break;}
+      lh=true; toks.push([k,v,line,file]); ok=true; break;
+    }
+    if(!ok) throw new WareError(`[${file}:${line}] Unknown character: ${JSON.stringify(src[pos])}`);
+  }
+  return toks;
+}
+
+class Parser {
+  constructor(t){this.t=t;this.p=0;}
+  pk(o=0){return this.t[this.p+o]||['EOF','',0,''];}
+  eat(k,v){
+    const t=this.pk();
+    if(k&&t[0]!==k) throw new WareError(`[line ${t[2]}] Expected ${k} got '${t[1]}'`);
+    if(v&&t[1]!==v) throw new WareError(`[line ${t[2]}] Expected '${v}' got '${t[1]}'`);
+    return this.t[this.p++];
+  }
+  parse(){const s=[];while(this.pk()[0]!=='EOF')s.push(this.stmt());return s;}
+  block(){const s=[];while(!['BLK','EOF'].includes(this.pk()[0])&&!['else','catch'].includes(this.pk()[1]))s.push(this.stmt());return s;}
+
+  stmt(){
+    const t=this.pk(), v=t[1];
+    if(v==='import'){this.eat();return['import',this.eat('STR')[1].slice(1,-1)];}
+    if(v==='constant'){this.eat();const n=this.eat('IDN')[1];this.eat('KW','is');return['const',n,this.expr()];}
+    if(v==='while'){this.eat();const c=this.expr();if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['while',c,b];}
+    if(v==='during'){this.eat();const i=this.eat('IDN')[1];this.eat('COM');this.eat('KW','range');this.eat('OPR','(');const c=this.expr();this.eat('OPR',')');if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['during',i,c,b];}
+    if(v==='for'){this.eat();this.eat('KW','each');const i=this.eat('IDN')[1];this.eat('KW','in');const it=this.expr();if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['foreach',i,it,b];}
+    if(v==='if'){
+      this.eat();const c=this.expr();if(this.pk()[0]==='COM')this.eat();const b=this.block();
+      let eb=[];if(this.pk()[1]==='else'){this.eat();if(this.pk()[0]==='COM')this.eat();eb=this.block();}
+      this.eat('BLK');return['if',c,b,eb];
+    }
+    if(v==='try'){
+      this.eat();if(this.pk()[0]==='COM')this.eat();const tb=this.block();
+      let ev=null,cb=[];
+      if(this.pk()[1]==='catch'){this.eat();if(this.pk()[0]==='IDN')ev=this.eat('IDN')[1];if(this.pk()[0]==='COM')this.eat();cb=this.block();}
+      this.eat('BLK');return['try',tb,ev,cb];
+    }
+    if(v==='function'){
+      this.eat();const n=this.eat('IDN')[1];this.eat('KW','which');this.eat('KW','has');
+      const ps=[];
+      if(this.pk()[0]==='IDN'){
+        const pn=this.eat('IDN')[1];let pd=null;if(this.pk()[1]==='='){this.eat();pd=this.expr();}ps.push([pn,pd]);
+        while(this.pk()[0]==='COM'&&this.pk(1)[0]==='IDN'&&['=',',','.'].includes(this.pk(2)[1])){
+          this.eat();const pn2=this.eat('IDN')[1];let pd2=null;if(this.pk()[1]==='='){this.eat();pd2=this.expr();}ps.push([pn2,pd2]);
+        }
+      }
+      if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['function',n,ps,b];
+    }
+    if(v==='class'){this.eat();const n=this.eat('IDN')[1];if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['class',n,b];}
+    if(v==='show'){this.eat();return['show',this.expr()];}
+    if(v==='read'){this.eat();return['read',this.eat('IDN')[1]];}
+    if(v==='add'){this.eat();this.eat('KW','to');const n=this.eat('IDN')[1];this.eat('COM');return['add',n,this.expr()];}
+    if(v==='return'){this.eat();const vs=[this.expr()];while(this.pk()[0]==='COM'){this.eat();vs.push(this.expr());}return['return',vs];}
+    if(v==='break'){this.eat();return['break'];}
+    if(v==='continue'){this.eat();return['continue'];}
+    if(v==='vars'){this.eat();return['vars'];}
+    if(v==='make'){
+      this.eat();const w=this.pk()[1];
+      if(w==='window'){this.eat();const ti=this.expr();let wi=800,hi=600;if(this.pk()[1]==='size'){this.eat();wi=this.expr();this.eat('COM');hi=this.expr();}return['gui',ti,wi,hi];}
+      if(w==='label'){this.eat();return['gui_lbl',this.expr()];}
+      if(w==='textbox'){this.eat();return['gui_tb',this.eat('IDN')[1]];}
+      if(w==='button'){this.eat();const l=this.expr();this.eat('KW','on');this.eat('KW','click');if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['gui_btn',l,b];}
+      throw new WareError(`Unknown make: '${w}'`);
+    }
+    if(v==='open'){this.eat();const pa=this.expr();if(this.pk()[1]==='as')this.eat();return['fread',pa,this.eat('IDN')[1]];}
+    // multi-assign
+    if(t[0]==='IDN'&&this.pk(1)[0]==='COM'){
+      const ns=[t[1]];let j=this.p+1;
+      while(j<this.t.length&&this.t[j][0]==='COM'){j++;if(j<this.t.length&&this.t[j][0]==='IDN'){ns.push(this.t[j][1]);j++;}else break;}
+      if(j<this.t.length&&this.t[j][1]==='is'){this.eat('IDN');for(let i=1;i<ns.length;i++){this.eat('COM');this.eat('IDN');}this.eat('KW','is');return['massign',ns,this.expr()];}
+    }
+    // field assign: obj.field is / self.field is
+    if((t[0]==='IDN'||t[1]==='self')&&this.pk(1)[0]==='DOT'&&this.pk(2)[0]==='IDN'&&this.pk(3)[1]==='is'){
+      const o=this.eat()[1];this.eat('DOT');const f=this.eat('IDN')[1];this.eat('KW','is');return['fassign',o,f,this.expr()];
+    }
+    // assign
+    if(t[0]==='IDN'&&this.pk(1)[1]==='is'&&!['bigger','smaller','not'].includes(this.pk(2)[1])){
+      const n=this.eat('IDN')[1];this.eat('KW','is');return['assign',n,this.expr()];
+    }
+    // index assign
+    if(t[0]==='IDN'&&this.pk(1)[0]==='OPR'&&this.pk(1)[1]==='['){
+      const sv=this.p,n=this.eat('IDN')[1];this.eat('OPR','[');const idx=this.expr();this.eat('OPR',']');
+      if(this.pk()[1]==='is'){this.eat();return['iassign',n,idx,this.expr()];}
+      this.p=sv;
+    }
+    return['expr',this.expr()];
+  }
+
+  expr(){return this.or();}
+  or(){let l=this.and();while(this.pk()[1]==='or'){this.eat();l=['or',l,this.and()];}return l;}
+  and(){let l=this.not();while(this.pk()[1]==='and'){this.eat();l=['and',l,this.not()];}return l;}
+  not(){if(this.pk()[1]==='not'){this.eat();return['not',this.cmp()];}return this.cmp();}
+  cmp(){
+    let l=this.add();
+    while(this.pk()[1]==='is'){
+      this.eat();
+      if(this.pk()[1]==='not'){this.eat();l=['!=',l,this.add()];}
+      else if(this.pk()[1]==='bigger'){this.eat();this.eat('KW','than');l=['>',l,this.add()];}
+      else if(this.pk()[1]==='smaller'){this.eat();this.eat('KW','than');l=['<',l,this.add()];}
+      else l=['==',l,this.add()];
+    }
+    return l;
+  }
+  add(){let l=this.mul();while(['+','-'].includes(this.pk()[1])){const op=this.eat()[1];l=[op,l,this.mul()];}return l;}
+  mul(){let l=this.una();while(['*','/','%'].includes(this.pk()[1])){const op=this.eat()[1];l=[op,l,this.una()];}return l;}
+  una(){if(this.pk()[1]==='-'){this.eat();return['neg',this.pri()];}return this.pri();}
+  pri(){
+    const t=this.pk();
+    if(t[0]==='NUM'){this.eat();return['num',t[1].includes('.')?parseFloat(t[1]):parseInt(t[1])];}
+    if(t[0]==='STR'){this.eat();return['str',t[1].slice(1,-1)];}
+    if(t[0]==='FST'){this.eat();return['fst',t[1].slice(2,-1)];}
+    if(t[0]==='BOL'){this.eat();return['bol',t[1]==='true'];}
+    if(t[1]==='nothing'){this.eat();return['nil'];}
+    if(t[1]==='new'){
+      this.eat();const n=this.eat('IDN')[1];const as=[];
+      if(this.pk()[1]==='('){this.eat();if(this.pk()[1]!==')'){{as.push(this.expr());while(this.pk()[0]==='COM'){this.eat();as.push(this.expr());}}}this.eat('OPR',')');}
+      return['new',n,as];
+    }
+    if(t[0]==='OPR'&&t[1]==='{'){
+      this.eat();const ps=[];
+      if(this.pk()[1]!=='}'){const k=this.expr();this.eat('CLN');ps.push([k,this.expr()]);while(this.pk()[0]==='COM'){this.eat();const k2=this.expr();this.eat('CLN');ps.push([k2,this.expr()]);}}
+      this.eat('OPR','}');return['dict',ps];
+    }
+    if(t[0]==='OPR'&&t[1]==='['){
+      this.eat();const its=[];
+      if(this.pk()[1]!==']'){its.push(this.expr());while(this.pk()[0]==='COM'){this.eat();its.push(this.expr());}}
+      this.eat('OPR',']');return['list',its];
+    }
+    if(t[0]==='IDN'||t[1]==='self'){
+      this.eat();const n=t[1];let nd;
+      if(this.pk()[1]==='('){this.eat();const as=[];if(this.pk()[1]!==')'){as.push(this.expr());while(this.pk()[0]==='COM'){this.eat();as.push(this.expr());}}this.eat('OPR',')');nd=['call',n,as];}
+      else nd=['var',n];
+      for(;;){
+        if(this.pk()[0]==='OPR'&&this.pk()[1]==='['){this.eat();const i=this.expr();this.eat('OPR',']');nd=['idx',nd,i];}
+        else if(this.pk()[0]==='DOT'&&this.pk(1)[0]==='IDN'){
+          this.eat();const f=this.eat('IDN')[1];
+          if(this.pk()[1]==='('){this.eat();const as=[];if(this.pk()[1]!==')'){as.push(this.expr());while(this.pk()[0]==='COM'){this.eat();as.push(this.expr());}}this.eat('OPR',')');nd=['meth',nd,f,as];}
+          else nd=['fld',nd,f];
+        }else break;
+      }
+      return nd;
+    }
+    if(t[1]==='('){this.eat();const e=this.expr();this.eat('OPR',')');return e;}
+    throw new WareError(`[line ${t[2]}] Unexpected token: '${t[1]}'`);
+  }
+}
+
+class Interpreter {
+  constructor(outFn, inFn){this.env={};this.consts=new Set();this.out=outFn;this.inp=inFn;this._builtins();}
+
+  _builtins(){
+    const E=this.env,d=(n,f)=>E[n]=f;
+    d('pi',Math.PI);
+    d('sqrt',a=>Math.sqrt(a[0])); d('abs',a=>Math.abs(a[0]));
+    d('round',a=>a.length>1?+a[0].toFixed(a[1]):Math.round(a[0]));
+    d('floor',a=>Math.floor(a[0])); d('ceil',a=>Math.ceil(a[0]));
+    d('power',a=>Math.pow(a[0],a[1])); d('log',a=>Math.log(a[0]));
+    d('sin',a=>Math.sin(a[0])); d('cos',a=>Math.cos(a[0]));
+    d('clamp',a=>Math.max(a[1],Math.min(a[2],a[0])));
+    d('random',_=>Math.random());
+    d('random_int',a=>Math.floor(Math.random()*(a[1]-a[0]+1))+a[0]);
+    d('to_fixed',a=>(+a[0]).toFixed(a[1]));
+    d('to_hex',a=>(+a[0]).toString(16)); d('to_bin',a=>(+a[0]).toString(2));
+    d('length',a=>String(a[0]).length);
+    d('upper',a=>String(a[0]).toUpperCase()); d('lower',a=>String(a[0]).toLowerCase());
+    d('trim',a=>String(a[0]).trim());
+    d('strip_chars',a=>{ const ch=a[1].replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&'); return String(a[0]).replace(new RegExp(`^[${ch}]+|[${ch}]+$`,'g'),''); });
+    d('replace',a=>String(a[0]).split(String(a[1])).join(String(a[2])));
+    d('contains',a=>String(a[0]).includes(String(a[1])));
+    d('starts',a=>String(a[0]).startsWith(String(a[1])));
+    d('ends',a=>String(a[0]).endsWith(String(a[1])));
+    d('slice',a=>String(a[0]).slice(a[1]-1,a[2]));
+    d('char_at',a=>String(a[0])[a[1]-1]);
+    d('find',a=>{ const i=String(a[0]).indexOf(String(a[1])); return i<0?0:i+1; });
+    d('count',a=>{ const s=String(a[0]),sub=String(a[1]);let n=0,p=0;while((p=s.indexOf(sub,p))!==-1){n++;p+=sub.length;}return n; });
+    d('repeat',a=>String(a[0]).repeat(a[1]));
+    d('pad_left',a=>String(a[0]).padStart(a[1],a.length>2?String(a[2]):' '));
+    d('pad_right',a=>String(a[0]).padEnd(a[1],a.length>2?String(a[2]):' '));
+    d('split',a=>String(a[0]).split(a.length>1&&a[1]!==''?String(a[1]):/\s+/).filter(x=>x!==''));
+    d('join',a=>a[0].map(String).join(String(a[1])));
+    d('words',a=>String(a[0]).trim().split(/\s+/).filter(Boolean));
+    d('lines',a=>String(a[0]).split('\n'));
+    d('to_chars',a=>String(a[0]).split(''));
+    d('number',a=>{ const s=String(a[0]); return s.includes('.')?parseFloat(s):parseInt(s); });
+    d('text',a=>String(a[0]));
+    d('is_empty',a=>{ const v=a[0]; return Array.isArray(v)?v.length===0:v instanceof Map?v.size===0:String(v).length===0; });
+    d('is_upper',a=>/[A-Z]/.test(a[0])&&String(a[0])===String(a[0]).toUpperCase());
+    d('is_lower',a=>/[a-z]/.test(a[0])&&String(a[0])===String(a[0]).toLowerCase());
+    d('is_numeric',a=>!isNaN(+a[0])&&String(a[0]).trim()!=='');
+    d('is_alpha',a=>/^[a-zA-Z]+$/.test(String(a[0])));
+    d('size',a=>Array.isArray(a[0])?a[0].length:a[0] instanceof Map?a[0].size:String(a[0]).length);
+    d('first',a=>a[0][0]); d('last',a=>a[0][a[0].length-1]);
+    d('reverse',a=>[...a[0]].reverse());
+    d('sort',a=>[...a[0]].sort((x,y)=>x<y?-1:x>y?1:0));
+    d('remove',a=>a[0].filter((_,i)=>i!==a[1]-1));
+    d('has',a=>a[0].includes(a[1]));
+    d('index_of',a=>{ const i=a[0].indexOf(a[1]); return i<0?0:i+1; });
+    d('unique',a=>[...new Set(a[0])]);
+    d('flatten',a=>a[0].flat());
+    d('sum_list',a=>a[0].reduce((s,x)=>s+x,0));
+    d('max_of',a=>Math.max(...a[0])); d('min_of',a=>Math.min(...a[0]));
+    d('any_true',a=>a[0].some(Boolean)); d('all_true',a=>a[0].every(Boolean));
+    d('count_in',a=>Array.isArray(a[0])?a[0].filter(x=>x===a[1]).length:0);
+    d('keys',a=>a[0] instanceof Map?[...a[0].keys()]:[]);
+    d('values',a=>a[0] instanceof Map?[...a[0].values()]:[]);
+    d('has_key',a=>a[0] instanceof Map?a[0].has(a[1]):false);
+    d('is_number',a=>typeof a[0]==='number');
+    d('is_text',a=>typeof a[0]==='string');
+    d('is_list',a=>Array.isArray(a[0]));
+    d('is_dict',a=>a[0] instanceof Map);
+    d('is_bool',a=>typeof a[0]==='boolean');
+    d('type_of',a=>{ const v=a[0]; if(v===null||v===undefined)return'nothing';if(typeof v==='boolean')return'bool';if(typeof v==='number')return'number';if(typeof v==='string')return'text';if(Array.isArray(v))return'list';if(v instanceof Map)return'dict';if(v instanceof WareInstance)return'object';return'unknown'; });
+    d('write',_=>{throw new WareError('File I/O not available in browser IDE');});
+    d('append',_=>{throw new WareError('File I/O not available in browser IDE');});
+  }
+
+  fmt(v){
+    if(v===null||v===undefined)return'nothing';
+    if(typeof v==='boolean')return v?'true':'false';
+    if(v instanceof WareInstance)return`<${v.klass.name}>`;
+    if(v instanceof Map){const ps=[...v.entries()].map(([k,x])=>`${this.fmt(k)}: ${this.fmt(x)}`).join(', ');return'{'+ps+'}';}
+    if(Array.isArray(v))return'['+v.map(x=>this.fmt(x)).join(', ')+']';
+    if(typeof v==='number'&&Number.isInteger(v))return String(v);
+    return String(v);
+  }
+
+  look(n){ let e=this.env; while(e){if(n in e)return e[n];e=e.__p__;} throw new WareError(`Undefined variable: '${n}'`); }
+  upd(n,v){ let e=this.env; while(e){if(n in e){e[n]=v;return;}e=e.__p__;} this.env[n]=v; }
+
+  async run(stmts){ for(const s of stmts) await this.exec(s); }
+
+  async exec(s){
+    const k=s[0];
+    if(k==='import') throw new WareError('import not supported in browser IDE');
+    if(k==='const'){
+      if(this.consts.has(s[1]))throw new WareError(`Cannot reassign constant '${s[1]}'`);
+      this.env[s[1]]=await this.ev(s[2]);this.consts.add(s[1]);return;
+    }
+    if(k==='assign'){
+      if(this.consts.has(s[1]))throw new WareError(`Cannot reassign constant '${s[1]}'`);
+      this.upd(s[1],await this.ev(s[2]));return;
+    }
+    if(k==='massign'){
+      const v=await this.ev(s[2]);
+      if(Array.isArray(v)&&v.__m__) s[1].forEach((n,i)=>this.env[n]=v[i]);
+      else this.env[s[1][0]]=v;
+      return;
+    }
+    if(k==='iassign'){
+      const c=this.look(s[1]),i=await this.ev(s[2]),v=await this.ev(s[3]);
+      if(Array.isArray(c))c[i-1]=v;
+      else if(c instanceof Map)c.set(i,v);
+      else throw new WareError(`'${s[1]}' is not indexable`);
+      return;
+    }
+    if(k==='fassign'){
+      const o=this.look(s[1]);
+      if(!(o instanceof WareInstance))throw new WareError(`'${s[1]}' is not an object`);
+      o.fields[s[2]]=await this.ev(s[3]);return;
+    }
+    if(k==='show'){this.out(this.fmt(await this.ev(s[1])));return;}
+    if(k==='read'){
+      const raw=await this.inp();
+      const n=+raw;
+      this.env[s[1]]=(!isNaN(n)&&raw.trim()!=='')?n:raw;return;
+    }
+    if(k==='add'){
+      const l=this.look(s[1]);if(!Array.isArray(l))throw new WareError(`'${s[1]}' is not a list`);
+      l.push(await this.ev(s[2]));return;
+    }
+    if(k==='while'){
+      while(await this.ev(s[1])){
+        try{for(const x of s[2])await this.exec(x);}
+        catch(e){if(e instanceof BreakSignal)break;if(e instanceof ContinueSignal)continue;throw e;}
+      }return;
+    }
+    if(k==='during'){
+      const n=await this.ev(s[2]);
+      for(let i=1;i<=n;i++){
+        this.env[s[1]]=i;
+        try{for(const x of s[3])await this.exec(x);}
+        catch(e){if(e instanceof BreakSignal)break;if(e instanceof ContinueSignal)continue;throw e;}
+      }return;
+    }
+    if(k==='foreach'){
+      let it=await this.ev(s[2]);if(it instanceof Map)it=[...it.keys()];
+      for(const item of it){
+        this.env[s[1]]=item;
+        try{for(const x of s[3])await this.exec(x);}
+        catch(e){if(e instanceof BreakSignal)break;if(e instanceof ContinueSignal)continue;throw e;}
+      }return;
+    }
+    if(k==='if'){const b=(await this.ev(s[1]))?s[2]:s[3];for(const x of b)await this.exec(x);return;}
+    if(k==='try'){
+      try{for(const x of s[1])await this.exec(x);}
+      catch(e){
+        if(e instanceof ReturnSignal||e instanceof BreakSignal||e instanceof ContinueSignal)throw e;
+        if(s[2])this.env[s[2]]=e.message||String(e);
+        for(const x of s[3])await this.exec(x);
+      }return;
+    }
+    if(k==='function'){this.env[s[1]]={__fn__:1,ps:s[2],body:s[3],cl:this.env};return;}
+    if(k==='class'){
+      const ms={};
+      for(const x of s[2])if(x[0]==='function')ms[x[1]]={__fn__:1,ps:x[2],body:x[3],cl:this.env};
+      this.env[s[1]]=new WareClass(s[1],ms);return;
+    }
+    if(k==='return'){
+      const vs=[];for(const x of s[1])vs.push(await this.ev(x));
+      if(vs.length===1)throw new ReturnSignal(vs[0]);
+      const a=vs;a.__m__=1;throw new ReturnSignal(a);
+    }
+    if(k==='break')throw new BreakSignal();
+    if(k==='continue')throw new ContinueSignal();
+    if(k==='expr'){await this.ev(s[1]);return;}
+    if(k==='vars'){
+      for(const[n,v]of Object.entries(this.env)){
+        if(typeof v==='function'||v instanceof WareClass||n==='pi'||n==='__p__'||(v&&v.__fn__))continue;
+        this.out(`  ${n} = ${this.fmt(v)}`);
+      }return;
+    }
+    if(['gui','gui_lbl','gui_tb','gui_btn'].includes(k))throw new WareError('GUI not available in browser IDE');
+    if(k==='fread')throw new WareError('File I/O not available in browser IDE');
+  }
+
+  async ev(n){
+    const k=n[0];
+    if(k==='num')return n[1];
+    if(k==='str')return n[1];
+    if(k==='bol')return n[1];
+    if(k==='nil')return null;
+    if(k==='fst'){
+      const self=this;
+      return n[1].replace(/\{([^}]+)\}/g,(_,expr)=>{
+        try{ return self.fmt(self._evs(new Parser(tokenize(expr)).expr())); }
+        catch(e){ return `{${expr}}`; }
+      });
+    }
+    if(k==='list')return await Promise.all(n[1].map(i=>this.ev(i)));
+    if(k==='dict'){const m=new Map();for(const[kn,vn]of n[1])m.set(await this.ev(kn),await this.ev(vn));return m;}
+    if(k==='var')return this.look(n[1]);
+    if(k==='idx'){
+      const o=await this.ev(n[1]),i=await this.ev(n[2]);
+      if(o instanceof Map)return o.get(i);
+      if(typeof o==='string')return o[i-1];
+      if(Array.isArray(o))return o[i-1];
+      throw new WareError('Cannot index this value');
+    }
+    if(k==='fld'){
+      const o=await this.ev(n[1]);
+      if(o instanceof WareInstance){if(n[2]in o.fields)return o.fields[n[2]];throw new WareError(`Object has no field '${n[2]}'`);}
+      if(o instanceof Map)return o.get(n[2]);
+      throw new WareError(`Cannot access field on ${typeof o}`);
+    }
+    if(k==='meth'){
+      const o=await this.ev(n[1]),args=await Promise.all(n[3].map(a=>this.ev(a)));
+      if(!(o instanceof WareInstance))throw new WareError(`Cannot call method on ${typeof o}`);
+      const fn=o.klass.methods[n[2]];
+      if(!fn)throw new WareError(`No method '${n[2]}' on ${o.klass.name}`);
+      return await this._call(fn,args,o);
+    }
+    if(k==='new'){
+      const kl=this.look(n[1]);if(!(kl instanceof WareClass))throw new WareError(`'${n[1]}' is not a class`);
+      const inst=new WareInstance(kl);
+      if(kl.methods['init']){const args=await Promise.all(n[2].map(a=>this.ev(a)));await this._call(kl.methods['init'],args,inst);}
+      return inst;
+    }
+    if(k==='call'){
+      const fn=this.look(n[1]),args=await Promise.all(n[2].map(a=>this.ev(a)));
+      if(typeof fn==='function')return fn(args);
+      if(fn&&fn.__fn__)return await this._call(fn,args,null);
+      throw new WareError(`'${n[1]}' is not callable`);
+    }
+    if(k==='and'){
+      const l=await this.ev(n[1]),r=await this.ev(n[2]);
+      if(typeof l==='boolean'&&typeof r==='boolean')return l&&r;
+      if(Array.isArray(l))return[...l,...(Array.isArray(r)?r:[r])];
+      if(Array.isArray(r))return[l,...r];
+      return[l,r];
+    }
+    if(k==='or') return(await this.ev(n[1]))||(await this.ev(n[2]));
+    if(k==='not')return!(await this.ev(n[1]));
+    if(k==='neg')return-(await this.ev(n[1]));
+    if(k==='==') return(await this.ev(n[1]))==(await this.ev(n[2]));
+    if(k==='!=') return(await this.ev(n[1]))!=(await this.ev(n[2]));
+    if(k==='>')  return(await this.ev(n[1]))>(await this.ev(n[2]));
+    if(k==='<')  return(await this.ev(n[1]))<(await this.ev(n[2]));
+    if(k==='+'){const l=await this.ev(n[1]),r=await this.ev(n[2]);return l+r;}
+    if(k==='-')  return(await this.ev(n[1]))-(await this.ev(n[2]));
+    if(k==='*'){const l=await this.ev(n[1]),r=await this.ev(n[2]);return typeof l==='string'?l.repeat(r):typeof r==='string'?r.repeat(l):l*r;}
+    if(k==='/')  return(await this.ev(n[1]))/(await this.ev(n[2]));
+    if(k==='%')  return(await this.ev(n[1]))%(await this.ev(n[2]));
+    throw new WareError(`Unknown node: ${k}`);
+  }
+
+  // sync eval for f-string interpolation
+  _evs(n){
+    const k=n[0];
+    if(k==='num')return n[1]; if(k==='str')return n[1]; if(k==='bol')return n[1]; if(k==='nil')return null;
+    if(k==='var'){try{return this.look(n[1]);}catch(e){return null;}}
+    if(k==='call'){try{const fn=this.look(n[1]),args=n[2].map(a=>this._evs(a));return typeof fn==='function'?fn(args):null;}catch(e){return null;}}
+    if(k==='idx'){try{const o=this._evs(n[1]),i=this._evs(n[2]);return o instanceof Map?o.get(i):typeof o==='string'?o[i-1]:Array.isArray(o)?o[i-1]:null;}catch(e){return null;}}
+    if(k==='fld'){try{const o=this._evs(n[1]);return o instanceof WareInstance?o.fields[n[2]]:o instanceof Map?o.get(n[2]):null;}catch(e){return null;}}
+    if(k==='+'){const l=this._evs(n[1]),r=this._evs(n[2]);return l+r;}
+    if(k==='-')return this._evs(n[1])-this._evs(n[2]);
+    if(k==='*'){const l=this._evs(n[1]),r=this._evs(n[2]);return typeof l==='string'?l.repeat(r):l*r;}
+    if(k==='/')return this._evs(n[1])/this._evs(n[2]);
+    if(k==='%')return this._evs(n[1])%this._evs(n[2]);
+    if(k==='neg')return-this._evs(n[1]);
+    if(k==='==')return this._evs(n[1])==this._evs(n[2]);
+    if(k==='!=')return this._evs(n[1])!=this._evs(n[2]);
+    if(k==='>')return this._evs(n[1])>this._evs(n[2]);
+    if(k==='<')return this._evs(n[1])<this._evs(n[2]);
+    return null;
+  }
+
+  async _call(fn,args,self){
+    const saved=this.env;
+    const loc={__p__:fn.cl};
+    if(self)loc['self']=self;
+    for(let i=0;i<fn.ps.length;i++){
+      const[pn,pd]=fn.ps[i];
+      if(i<args.length)loc[pn]=args[i];
+      else if(pd!==null)loc[pn]=await this.ev(pd);
+      else throw new WareError(`Missing argument '${pn}'`);
+    }
+    this.env=loc;let r=null;
+    try{for(const s of fn.body)await this.exec(s);}
+    catch(e){if(e instanceof ReturnSignal)r=e.value;else{this.env=saved;throw e;}}
+    this.env=saved;return r;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IDE
+// ═══════════════════════════════════════════════════════════════════
+
+const EXAMPLES=[
+  {name:'Hello World',code:'// Hello World\nshow "Hello, World!"\n\nname is "Ware"\nshow f"Welcome to {name} IDE!"'},
+  {name:'Variables & Types',code:'name is "Alice"\nage is 25\nactive is true\n\nshow f"Name: {name}"\nshow f"Age: {age}"\nshow f"Type of age: {type_of(age)}"\nshow f"Is text: {is_text(name)}"\nshow f"Is number: {is_number(age)}"'},
+  {name:'Lists',code:'fruits is ["apple", "banana", "cherry", "mango"]\n\nshow f"All: {fruits}"\nshow f"First: {first(fruits)}"\nshow f"Size: {size(fruits)}"\n\nadd to fruits, "grape"\nshow f"After adding: {fruits}"\n\nfor each fruit in fruits,\n    show f"  - {fruit}"\n.'},
+  {name:'Functions',code:'function greet which has name, greeting = "Hello",\n    show f"{greeting}, {name}!"\n.\n\nfunction factorial which has n,\n    if n is smaller than 2,\n        return 1\n    .\n    return n * factorial(n - 1)\n.\n\ngreet("Alice")\ngreet("Bob", "Hey")\n\nduring i, range(8),\n    show f"  {i}! = {factorial(i)}"\n.'},
+  {name:'Classes',code:'class Animal,\n    function init which has name, sound,\n        self.name is name\n        self.sound is sound\n        self.tricks is []\n    .\n    function speak which has,\n        show f"{self.name} says {self.sound}!"\n    .\n    function learn which has trick,\n        add to self.tricks, trick\n        show f"{self.name} learned: {trick}"\n    .\n.\n\ndog is new Animal("Rex", "woof")\ndog.speak()\ndog.learn("sit")\ndog.learn("shake")\nshow dog.name\nshow dog.tricks'},
+  {name:'Dictionaries',code:'scores is {"Alice": 95, "Bob": 78, "Charlie": 92, "Dana": 85}\n\nfor each name in scores,\n    grade is scores[name]\n    if grade is bigger than 90,\n        show f"{name}: {grade}  A"\n    else,\n        show f"{name}: {grade}  B"\n    .\n.\n\nall_scores is values(scores)\nshow f"Highest: {max_of(all_scores)}"\nshow f"Average: {round(sum_list(all_scores) / size(all_scores), 1)}"'},
+  {name:'String Magic',code:'s is "The quick brown fox"\n\nshow f"Length: {length(s)}"\nshow f"Upper: {upper(s)}"\nshow f"Words: {words(s)}"\nshow f"Word count: {size(words(s))}"\nshow f"Contains fox: {contains(s, "fox")}"\nshow f"Find fox at: {find(s, "fox")}"\nshow f"Replace: {replace(s, "fox", "cat")}"\nshow f"Is numeric: {is_numeric("42")}"\nshow f"Padded: |{pad_left("42", 8, "0")}|"\nshow f"Repeated: {repeat("ha", 5)}"'},
+  {name:'Error Handling',code:'function safe_divide which has a, b,\n    try,\n        if b is 0,\n            return "cannot divide by zero"\n        .\n        return a / b\n    catch err,\n        return f"Error: {err}"\n    .\n.\n\nshow safe_divide(10, 2)\nshow safe_divide(10, 0)\n\ntry,\n    x is number("not a number")\ncatch err,\n    show f"Caught: {err}"\n.'},
+  {name:'Closures',code:'function make_counter which has start,\n    count is start\n    function increment which has amount = 1,\n        count is count + amount\n        return count\n    .\n    return increment\n.\n\ncounter is make_counter(0)\nshow counter(1)\nshow counter(1)\nshow counter(5)\nshow counter(10)'},
+  {name:'User Input',code:'show "What is your name?"\nread name\n\nshow "How old are you?"\nread age\n\nshow f"Hello {name}! Next year you will be {age + 1}."\n\nif age is bigger than 17,\n    show "You are an adult."\nelse,\n    show "You are a minor."\n.'},
+];
+
+const STARTER=`// Welcome to Ware IDE!
+// Write code here, press Run or Ctrl+Enter
+
+name is "World"
+show f"Hello, {name}!"
+
+nums is [1, 2, 3, 4, 5]
+show f"Sum: {sum_list(nums)}"
+show f"Max: {max_of(nums)}"
+
+for each n in nums,
+    show f"  {n} squared = {n * n}"
+.
+`;
+
+let files={}, active='';
+
+function createFile(name,code=''){files[name]=code;render();setActive(name);}
+function setActive(name){active=name;document.getElementById('code').value=files[name]||'';render();onEdit();highlight();}
+function save(){if(active)files[active]=document.getElementById('code').value;}
+function newFile(){const n=prompt('File name:',`untitled${Object.keys(files).length+1}.ware`);if(n)createFile(n.endsWith('.ware')?n:n+'.ware');}
+function delFile(e,name){e.stopPropagation();if(!confirm(`Delete ${name}?`))return;delete files[name];const r=Object.keys(files);if(!r.length)createFile('main.ware',STARTER);else if(name===active)setActive(r[r.length-1]);else render();}
+function closeTab(e,name){e.stopPropagation();delete files[name];const r=Object.keys(files);if(!r.length)createFile('main.ware',STARTER);else if(name===active)setActive(r[r.length-1]);else render();}
+
+function render(){
+  // sidebar
+  const fl=document.getElementById('fl');fl.innerHTML='';
+  Object.keys(files).forEach(n=>{
+    const d=document.createElement('div');d.className='fi'+(n===active?' on':'');
+    d.innerHTML=`<span style="opacity:.35;font-size:9px">◇</span> ${n} <span class="fdel" onclick="delFile(event,'${n}')">×</span>`;
+    d.onclick=()=>{save();setActive(n);};fl.appendChild(d);
+  });
+  // tabs
+  const tb=document.getElementById('tabs');tb.innerHTML='';
+  Object.keys(files).forEach(n=>{
+    const t=document.createElement('div');t.className='tab'+(n===active?' on':'');
+    t.innerHTML=`${n} <span class="tx" onclick="closeTab(event,'${n}')">×</span>`;
+    t.onclick=e=>{if(!e.target.classList.contains('tx')){save();setActive(n);}};tb.appendChild(t);
+  });
+}
+
+function onEdit(){save();updNums();updCur();document.getElementById('iT').textContent=document.getElementById('code').value.split('\n').length;highlight();}
+function curLine(ta){return ta.value.substr(0,ta.selectionStart).split('\n').length;}
+function updNums(){
+  const ta=document.getElementById('code'),lines=ta.value.split('\n'),cur=curLine(ta);
+  document.getElementById('lns').innerHTML=lines.map((_,i)=>`<span class="ln${i+1===cur?' cur':''}">${i+1}</span>`).join('');
+}
+function updCur(){
+  const ta=document.getElementById('code'),txt=ta.value.substr(0,ta.selectionStart),ls=txt.split('\n');
+  document.getElementById('iL').textContent=ls.length;
+  document.getElementById('iC').textContent=ls[ls.length-1].length+1;
+  updNums();
+}
+function onKey(e){
+  const ta=e.target;
+  if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.substring(0,s)+'    '+ta.value.substring(en);ta.selectionStart=ta.selectionEnd=s+4;onEdit();}
+  if(e.key==='Enter'){
+    e.preventDefault();const s=ta.selectionStart;
+    const ls=ta.value.lastIndexOf('\n',s-1)+1;
+    const cl=ta.value.substring(ls,s);
+    const ind=cl.match(/^(\s*)/)[1];
+    const ext=cl.trimEnd().endsWith(',')?'    ':'';
+    const ins='\n'+ind+ext;
+    ta.value=ta.value.substring(0,s)+ins+ta.value.substring(ta.selectionEnd);
+    ta.selectionStart=ta.selectionEnd=s+ins.length;onEdit();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();runCode();}
+}
+
+function clearOut(){document.getElementById('os').innerHTML='<div class="oe" id="oe">Run your code to see output here</div>';setDot('');}
+function addLine(txt,cls=''){
+  const os=document.getElementById('os');
+  const oe=document.getElementById('oe');if(oe)oe.remove();
+  const sp=document.createElement('span');sp.className='ol'+(cls?' '+cls:'');sp.textContent=txt;
+  os.appendChild(sp);os.appendChild(document.createElement('br'));os.scrollTop=os.scrollHeight;
+}
+function setDot(s){document.getElementById('dot').className='dot'+(s?' '+s:'');}
+
+let inputResolve=null;
+function getInput(){
+  return new Promise(res=>{
+    inputResolve=res;
+    document.getElementById('ib').classList.add('show');
+    document.getElementById('if').value='';
+    document.getElementById('if').focus();
+  });
+}
+function subInput(){
+  const v=document.getElementById('if').value;
+  document.getElementById('ib').classList.remove('show');
+  addLine('› '+v,'s');
+  if(inputResolve){inputResolve(v);inputResolve=null;}
+}
+
+async function runCode(){
+  save();
+  const code=document.getElementById('code').value;
+  if(!code.trim())return;
+  clearOut();setDot('run');
+  const btn=document.getElementById('runBtn');
+  btn.classList.add('busy');
+  btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="animation:blink 1s infinite"><rect x="3" y="3" width="4" height="10"/><rect x="9" y="3" width="4" height="10"/></svg>Running';
+  try{
+    const toks=tokenize(code,active||'<editor>');
+    const ast=new Parser(toks).parse();
+    const interp=new Interpreter(txt=>addLine(txt),()=>getInput());
+    await interp.run(ast);
+    setDot('ok');
+    if(!document.querySelector('.ol'))addLine('(no output)','s');
+  }catch(e){
+    addLine(e.message||String(e),'e');setDot('err');
+  }
+  btn.classList.remove('busy');
+  btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>Run';
+}
+
+function loadEx(i){
+  if(!i)return;
+  const ex=EXAMPLES[+i];save();
+  const n=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,'_')+'.ware';
+  files[n]=ex.code;setActive(n);
+  document.querySelector('.ex').value='';
+}
+function populateEx(){
+  const sel=document.querySelector('.ex');
+  EXAMPLES.forEach((ex,i)=>{const o=document.createElement('option');o.value=i;o.textContent=ex.name;sel.appendChild(o);});
+}
+
+
+function syncScroll(ta){
+  document.getElementById('lns').scrollTop=ta.scrollTop;
+  const hl=document.getElementById('highlight');
+  hl.scrollTop=ta.scrollTop;
+  hl.scrollLeft=ta.scrollLeft;
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlight(){
+  const code=document.getElementById('code').value;
+  const hl=document.getElementById('highlight');
+  hl.innerHTML=colorize(code);
+}
+
+const KW_CTRL=new Set(['if','else','while','during','for','each','in','try','catch','return','break','continue','function','which','has','class','new','import','constant']);
+const KW_IO  =new Set(['show','read','add','to','range','make','open','as','vars','window','button','label','textbox','on','click']);
+const KW_OP  =new Set(['and','or','not','is','bigger','smaller','than','nothing']);
+
+function colorize(src){
+  let out='', i=0;
+  while(i<src.length){
+    // comment
+    if(src[i]==='/'&&src[i+1]==='/'){
+      let j=i;while(j<src.length&&src[j]!=='\n')j++;
+      out+=`<span class="tk-cmt">${escHtml(src.slice(i,j))}</span>`;i=j;continue;
+    }
+    // f-string
+    if(src[i]==='f'&&src[i+1]==='"'){
+      let j=i+2;
+      let inner='<span class="tk-fst">f"';
+      while(j<src.length&&src[j]!=='"'){
+        if(src[j]==='{'){
+          // find matching }
+          let k=j+1,depth=1;
+          while(k<src.length&&depth>0){if(src[k]==='{')depth++;else if(src[k]==='}')depth--;k++;}
+          const expr=src.slice(j+1,k-1);
+          inner+=`}<span class="tk-fi">${escHtml('{'+expr+'}')}</span><span class="tk-fst">`;
+          j=k;
+        } else {
+          inner+=escHtml(src[j]); j++;
+        }
+      }
+      if(j<src.length){inner+='"';j++;}
+      inner+='</span>';
+      out+=inner;i=j;continue;
+    }
+    // regular string
+    if(src[i]==='"'){
+      let j=i+1;while(j<src.length&&src[j]!=='"'&&src[j]!=='\n')j++;
+      if(j<src.length&&src[j]==='"')j++;
+      out+=`<span class="tk-str">${escHtml(src.slice(i,j))}</span>`;i=j;continue;
+    }
+    // number
+    if(/\d/.test(src[i])||(src[i]==='.'&&/\d/.test(src[i+1]||''))){
+      let j=i;while(j<src.length&&(/\d/.test(src[j])||src[j]==='.'))j++;
+      // only if not preceded by letter (avoid matching inside ident)
+      out+=`<span class="tk-num">${escHtml(src.slice(i,j))}</span>`;i=j;continue;
+    }
+    // standalone dot (block end) — line that is just a dot
+    if(src[i]==='.'&&(i===0||src[i-1]==='\n')){
+      // check it's the only thing on this line
+      let j=i+1;while(j<src.length&&(src[j]===' '||src[j]==='\t'))j++;
+      if(j>=src.length||src[j]==='\n'){
+        out+=`<span class="tk-blk">.</span>`;i++;continue;
+      }
+    }
+    // identifier or keyword
+    if(/[a-zA-Z_]/.test(src[i])){
+      let j=i;while(j<src.length&&/[a-zA-Z0-9_]/.test(src[j]))j++;
+      const word=src.slice(i,j);
+      // look ahead past whitespace for '('
+      let la=j;while(la<src.length&&(src[la]===' '||src[la]==='\t'))la++;
+      const isFnCall=src[la]==='(';
+      if(word==='self'){out+=`<span class="tk-self">${word}</span>`;i=j;continue;}
+      if(word==='true'||word==='false'){out+=`<span class="tk-bool">${word}</span>`;i=j;continue;}
+      if(KW_CTRL.has(word)){out+=`<span class="tk-kw">${word}</span>`;i=j;continue;}
+      if(KW_IO.has(word)){out+=`<span class="tk-kw2">${word}</span>`;i=j;continue;}
+      if(KW_OP.has(word)){out+=`<span class="tk-op">${word}</span>`;i=j;continue;}
+      if(isFnCall){out+=`<span class="tk-fn">${word}</span>`;i=j;continue;}
+      out+=`<span class="tk">${escHtml(word)}</span>`;i=j;continue;
+    }
+    // operators
+    if('+-*/%='.includes(src[i])){
+      out+=`<span class="tk-op">${escHtml(src[i])}</span>`;i++;continue;
+    }
+    // everything else (brackets, commas, newlines, spaces)
+    out+=escHtml(src[i]);i++;
+  }
+  return out;
+}
+
+// resizer
+(()=>{
+  const rz=document.getElementById('rz'),op=document.getElementById('op');
+  let drag=false,sx,sw;
+  rz.addEventListener('mousedown',e=>{drag=true;sx=e.clientX;sw=op.offsetWidth;document.body.style.cssText='cursor:col-resize;user-select:none';});
+  document.addEventListener('mousemove',e=>{if(!drag)return;op.style.width=Math.max(180,Math.min(700,sw+(sx-e.clientX)))+'px';});
+  document.addEventListener('mouseup',()=>{drag=false;document.body.style.cssText='';});
+})();
+
+populateEx();
+createFile('main.ware',STARTER);
+document.getElementById('iT').textContent=1;
+</script>
+</body>
+</html>
