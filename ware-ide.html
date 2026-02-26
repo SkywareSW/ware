@@ -204,9 +204,35 @@ class Parser {
     if(v==='during'){this.eat();const i=this.eat('IDN')[1];this.eat('COM');this.eat('KW','range');this.eat('OPR','(');const c=this.expr();this.eat('OPR',')');if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['during',i,c,b];}
     if(v==='for'){this.eat();this.eat('KW','each');const i=this.eat('IDN')[1];this.eat('KW','in');const it=this.expr();if(this.pk()[0]==='COM')this.eat();const b=this.block();this.eat('BLK');return['foreach',i,it,b];}
     if(v==='if'){
-      this.eat();const c=this.expr();if(this.pk()[0]==='COM')this.eat();const b=this.block();
-      let eb=[];if(this.pk()[1]==='else'){this.eat();if(this.pk()[0]==='COM')this.eat();eb=this.block();}
-      this.eat('BLK');return['if',c,b,eb];
+      this.eat();
+      const condition = this.expr();
+      if(this.pk()[0]==='COM') this.eat();
+      const body = this.block();
+
+      let elseBody = [];
+
+      // Handle multiple "else if"
+      while(this.pk()[1]==='else' && this.pk(1)[1]==='if'){
+        this.eat(); // else
+        this.eat(); // if
+
+        const elifCond = this.expr();
+        if(this.pk()[0]==='COM') this.eat();
+        const elifBody = this.block();
+
+        // Nest it as an if inside else
+       elseBody = [['if', elifCond, elifBody, elseBody]];
+      }
+
+      // Final "else"
+     if(this.pk()[1]==='else'){
+        this.eat();
+        if(this.pk()[0]==='COM') this.eat();
+        elseBody = this.block();
+     }
+
+      this.eat('BLK');
+      return ['if', condition, body, elseBody];
     }
     if(v==='try'){
       this.eat();if(this.pk()[0]==='COM')this.eat();const tb=this.block();
