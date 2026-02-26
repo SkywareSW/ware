@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ware - A programming language interpreter
-Version 3.0
+Version 3.5
 """
 
 import re, sys, os, math
@@ -153,19 +153,38 @@ class Parser:
             self.consume("BLOCK_END")
             return ("foreach", var, iterable, body)
 
-        # if / else
+        # if / else / else if
         if tok[1] == "if":
             self.consume()
             cond = self.parse_expr()
-            if self.peek()[0] == "COMMA": self.consume()
-            body = self.parse_block()
-            else_body = []
-            if self.peek()[1] == "else":
+        if self.peek()[0] == "COMMA":
+            self.consume()
+
+        body = self.parse_block()
+
+        else_body = []
+
+        # Support multiple else if branches
+        while self.peek()[1] == "else" and self.peek(1)[1] == "if":
+            self.consume()  # else
+            self.consume()  # if
+            elif_cond = self.parse_expr()
+            if self.peek()[0] == "COMMA":
                 self.consume()
-                if self.peek()[0] == "COMMA": self.consume()
-                else_body = self.parse_block()
-            self.consume("BLOCK_END")
-            return ("if", cond, body, else_body)
+            elif_body = self.parse_block()
+
+            # Nest into else_body as another if node
+            else_body = [("if", elif_cond, elif_body, else_body)]
+
+        # Final else
+        if self.peek()[1] == "else":
+            self.consume()
+            if self.peek()[0] == "COMMA":
+                self.consume()
+            else_body = self.parse_block()
+
+        self.consume("BLOCK_END")
+        return ("if", cond, body, else_body)
 
         # try / catch
         if tok[1] == "try":
