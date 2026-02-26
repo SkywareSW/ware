@@ -555,7 +555,7 @@ name is "Ware"   // inline comment
 | `show f"Hi {name}"` | Print with template |
 | `read x` | Get user input (auto-detects type) |
 | `if cond, ... .` | Conditional |
-| `if cond, ... else, ... .` | If / else |
+| `if cond, ... else if, ... else, ... .` | If / else if / else |
 | `while cond, ... .` | While loop |
 | `during i, range(n), ... .` | Count loop (1 to n) |
 | `for each x in list, ... .` | Loop over items |
