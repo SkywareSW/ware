@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ware - A programming language interpreter
-Version 3.5
+Version 3.0
 """
 
 import re, sys, os, math
@@ -28,7 +28,7 @@ TOKEN_PATTERNS = [
     ("NUMBER",   r"\d+(\.\d+)?"),
     ("STRING",   r'"[^"]*"'),
     ("BOOL",     r"\b(true|false)\b"),
-    ("KW",       r"\b(while|during|for|each|in|if|else|try|catch|function|which|has|read|show|add|to|break|continue|range|and|or|not|is|bigger|smaller|than|return|import|constant|make|window|button|label|textbox|on|click|open|as|class|new|self|nothing|vars)\b"),
+    ("KW",       r"\b(while|during|for|each|in|if|else|try|catch|function|which|has|read|show|add|to|break|continue|range|and|or|not|is|bigger|smaller|than|return|import|constant|make|window|button|label|textbox|on|click|open|as|class|new|self|nothing|vars|checkbox|slider|dropdown|row|column|image|canvas|progress|set|alert|confirm|separator|status|badge|listbox|table|color_picker|multiline|spacer|draw|line|rect|circle|password|number_input|text)\b"),
     ("IDENT",    r"[a-zA-Z_][a-zA-Z0-9_]*"),
     ("DOT",      r"\."),
     ("OP",       r"[+\-*/\(\)\[\]{}%=]"),
@@ -266,36 +266,155 @@ class Parser:
         if tok[1] == "break":    self.consume(); return ("break",)
         if tok[1] == "continue": self.consume(); return ("continue",)
 
-        # make window/label/textbox/button
+        # ── make <widget> ──────────────────────────────────────────────────
         if tok[1] == "make":
             self.consume()
             what = self.peek()[1]
+            # window
             if what == "window":
-                self.consume()
-                title = self.parse_expr()
-                w, h = 800, 600
+                self.consume(); title = self.parse_expr(); w, h = 800, 600
                 if self.peek()[1] == "size":
-                    self.consume()
-                    w = self.parse_expr()
-                    self.consume("COMMA")
-                    h = self.parse_expr()
+                    self.consume(); w = self.parse_expr(); self.consume("COMMA"); h = self.parse_expr()
                 return ("gui_window", title, w, h)
-            if what == "label":
-                self.consume()
-                return ("gui_label", self.parse_expr())
+            # label / text (read-only display)
+            if what in ("label", "text"):
+                self.consume(); return ("gui_label", self.parse_expr())
+            # textbox
             if what == "textbox":
-                self.consume()
-                return ("gui_textbox", self.consume("IDENT")[1])
+                self.consume(); return ("gui_textbox", self.consume("IDENT")[1])
+            # password
+            if what == "password":
+                self.consume(); return ("gui_password", self.consume("IDENT")[1])
+            # number_input varName, min, max
+            if what == "number_input":
+                self.consume(); vr = self.consume("IDENT")[1]; mn = mx = None
+                if self.peek()[0] == "COMMA":
+                    self.consume(); mn = self.parse_expr(); self.consume("COMMA"); mx = self.parse_expr()
+                return ("gui_number_input", vr, mn, mx)
+            # multiline varName
+            if what == "multiline":
+                self.consume(); return ("gui_multiline", self.consume("IDENT")[1])
+            # button
             if what == "button":
-                self.consume()
-                lbl = self.parse_expr()
-                self.consume("KW", "on")
-                self.consume("KW", "click")
+                self.consume(); lbl = self.parse_expr()
+                self.consume("KW", "on"); self.consume("KW", "click")
                 if self.peek()[0] == "COMMA": self.consume()
-                body = self.parse_block()
-                self.consume("BLOCK_END")
+                body = self.parse_block(); self.consume("BLOCK_END")
                 return ("gui_button", lbl, body)
+            # checkbox varName "Label"
+            if what == "checkbox":
+                self.consume(); vr = self.consume("IDENT")[1]; lbl = self.parse_expr()
+                return ("gui_checkbox", vr, lbl)
+            # slider varName, min, max
+            if what == "slider":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); mn = self.parse_expr()
+                self.consume("COMMA"); mx = self.parse_expr()
+                step = None
+                if self.peek()[0] == "COMMA": self.consume(); step = self.parse_expr()
+                return ("gui_slider", vr, mn, mx, step)
+            # dropdown varName, list_expr
+            if what == "dropdown":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); opts = self.parse_expr()
+                return ("gui_dropdown", vr, opts)
+            # progress varName
+            if what == "progress":
+                self.consume(); return ("gui_progress", self.consume("IDENT")[1])
+            # image expr
+            if what == "image":
+                self.consume(); return ("gui_image", self.parse_expr())
+            # canvas varName, w, h
+            if what == "canvas":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); w = self.parse_expr()
+                self.consume("COMMA"); h = self.parse_expr()
+                return ("gui_canvas", vr, w, h)
+            # row/column layout
+            if what == "row":
+                self.consume()
+                if self.peek()[0] == "COMMA": self.consume()
+                body = self.parse_block(); self.consume("BLOCK_END")
+                return ("gui_row", body)
+            if what == "column":
+                self.consume()
+                if self.peek()[0] == "COMMA": self.consume()
+                body = self.parse_block(); self.consume("BLOCK_END")
+                return ("gui_column", body)
+            # separator
+            if what == "separator":
+                self.consume(); return ("gui_separator",)
+            # status varName expr
+            if what == "status":
+                self.consume(); vr = self.consume("IDENT")[1]; txt = self.parse_expr()
+                return ("gui_status", vr, txt)
+            # badge varName, expr, style?
+            if what == "badge":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); txt = self.parse_expr()
+                style = "info"
+                if self.peek()[0] == "COMMA": self.consume(); style = self.consume("STRING")[1].strip('"')
+                return ("gui_badge", vr, txt, style)
+            # listbox varName, items_expr
+            if what == "listbox":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); items = self.parse_expr()
+                return ("gui_listbox", vr, items)
+            # table varName, rows_expr
+            if what == "table":
+                self.consume(); vr = self.consume("IDENT")[1]
+                self.consume("COMMA"); rows = self.parse_expr()
+                hdrs = None
+                if self.peek()[0] == "COMMA": self.consume(); hdrs = self.parse_expr()
+                return ("gui_table", vr, rows, hdrs)
+            # color_picker varName
+            if what == "color_picker":
+                self.consume(); vr = self.consume("IDENT")[1]
+                init = None
+                if self.peek()[0] == "COMMA": self.consume(); init = self.parse_expr()
+                return ("gui_color_picker", vr, init)
+            # spacer
+            if what == "spacer":
+                self.consume(); return ("gui_spacer",)
             raise SyntaxError(f"Unknown make target: '{what}'")
+
+        # ── set varName prop value ──────────────────────────────────────────
+        if tok[1] == "set":
+            self.consume()
+            vr = self.consume("IDENT")[1]
+            prop = self.peek()[1]; self.consume()
+            val = self.parse_expr()
+            return ("gui_set", vr, prop, val)
+
+        # ── alert / confirm ────────────────────────────────────────────────
+        if tok[1] == "alert":
+            self.consume(); return ("gui_alert", self.parse_expr())
+        if tok[1] == "confirm":
+            self.consume(); vr = self.consume("IDENT")[1]; self.consume("COMMA")
+            return ("gui_confirm", vr, self.parse_expr())
+
+        # ── draw canvasVar cmd args ────────────────────────────────────────
+        if tok[1] == "draw":
+            self.consume(); canv = self.consume("IDENT")[1]; cmd = self.peek()[1]; self.consume()
+            if cmd == "clear":  return ("gui_draw", canv, "clear")
+            if cmd == "color":  return ("gui_draw", canv, "color", self.parse_expr())
+            if cmd == "line":
+                x1=self.parse_expr();self.consume("COMMA");y1=self.parse_expr()
+                self.consume("COMMA");x2=self.parse_expr();self.consume("COMMA");y2=self.parse_expr()
+                return ("gui_draw", canv, "line", x1, y1, x2, y2)
+            if cmd == "rect":
+                x=self.parse_expr();self.consume("COMMA");y=self.parse_expr()
+                self.consume("COMMA");w=self.parse_expr();self.consume("COMMA");h=self.parse_expr()
+                return ("gui_draw", canv, "rect", x, y, w, h)
+            if cmd == "circle":
+                x=self.parse_expr();self.consume("COMMA");y=self.parse_expr()
+                self.consume("COMMA");r=self.parse_expr()
+                return ("gui_draw", canv, "circle", x, y, r)
+            if cmd == "text":
+                x=self.parse_expr();self.consume("COMMA");y=self.parse_expr()
+                self.consume("COMMA");t=self.parse_expr()
+                return ("gui_draw", canv, "text", x, y, t)
+            raise SyntaxError(f"Unknown draw command: '{cmd}'")
 
         # open "file" as x
         if tok[1] == "open":
@@ -532,6 +651,8 @@ class Interpreter:
         self.source_dir = source_dir
         self.gui_root = None
         self.gui_widgets = {}
+        self.gui_frame_stack = []
+        self.gui_scroll_frame = None
         self._setup_builtins()
 
     def _setup_builtins(self):
@@ -786,10 +907,33 @@ class Interpreter:
                 if name in ("pi",): continue
                 print(f"  {name} = {self.fmt(val)}")
 
-        elif k == "gui_window": self._gui_window(stmt)
-        elif k == "gui_label":  self._gui_label(stmt)
-        elif k == "gui_button": self._gui_button(stmt)
-        elif k == "gui_textbox":self._gui_textbox(stmt)
+        # ── GUI execution ────────────────────────────────────────────────────
+        elif k == "gui_window":     self._gui(stmt, "window")
+        elif k == "gui_label":      self._gui(stmt, "label")
+        elif k == "gui_textbox":    self._gui(stmt, "textbox")
+        elif k == "gui_password":   self._gui(stmt, "password")
+        elif k == "gui_number_input": self._gui(stmt, "number_input")
+        elif k == "gui_multiline":  self._gui(stmt, "multiline")
+        elif k == "gui_button":     self._gui(stmt, "button")
+        elif k == "gui_checkbox":   self._gui(stmt, "checkbox")
+        elif k == "gui_slider":     self._gui(stmt, "slider")
+        elif k == "gui_dropdown":   self._gui(stmt, "dropdown")
+        elif k == "gui_progress":   self._gui(stmt, "progress")
+        elif k == "gui_image":      self._gui(stmt, "image")
+        elif k == "gui_canvas":     self._gui(stmt, "canvas")
+        elif k == "gui_row":        self._gui(stmt, "row")
+        elif k == "gui_column":     self._gui(stmt, "column")
+        elif k == "gui_separator":  self._gui(stmt, "separator")
+        elif k == "gui_status":     self._gui(stmt, "status")
+        elif k == "gui_badge":      self._gui(stmt, "badge")
+        elif k == "gui_listbox":    self._gui(stmt, "listbox")
+        elif k == "gui_table":      self._gui(stmt, "table")
+        elif k == "gui_color_picker": self._gui(stmt, "color_picker")
+        elif k == "gui_spacer":     self._gui(stmt, "spacer")
+        elif k == "gui_set":        self._gui(stmt, "set")
+        elif k == "gui_alert":      self._gui(stmt, "alert")
+        elif k == "gui_confirm":    self._gui(stmt, "confirm")
+        elif k == "gui_draw":       self._gui(stmt, "draw")
 
         elif k == "file_read":
             path = self.eval(stmt[1])
@@ -797,44 +941,354 @@ class Interpreter:
 
     # ── GUI ───────────────────────────────────────────────────────────────────
 
-    def _gui_window(self, stmt):
+    def _require_gui(self):
+        if not HAS_GUI: raise WareError("GUI requires tkinter (not installed). Install with: pip install tk")
+        if not self.gui_root: raise WareError("No window open. Use: make window \"Title\"")
+
+    def _gui_parent(self):
+        """Return current layout container (frame stack top or root)."""
+        return self.gui_frame_stack[-1] if self.gui_frame_stack else self.gui_root
+
+    def _gui(self, stmt, kind):
         if not HAS_GUI: raise WareError("GUI requires tkinter (not installed)")
-        title = self.eval(stmt[1])
-        w = self.eval(stmt[2]) if isinstance(stmt[2], tuple) else 800
-        h = self.eval(stmt[3]) if isinstance(stmt[3], tuple) else 600
-        self.gui_root = tk.Tk()
-        self.gui_root.title(str(title))
-        self.gui_root.geometry(f"{int(w)}x{int(h)}")
-        self.gui_root.configure(bg="#1a1a2e")
+        BG, FG, BG2, ACC = "#1a1a2e", "#e0e0f0", "#22223a", "#7c6af7"
+        FONT = ("Segoe UI", 11)
+        MONO = ("Consolas", 11)
 
-    def _gui_label(self, stmt):
-        if not self.gui_root: raise WareError("No window. Use 'make window' first.")
-        lbl = tk.Label(self.gui_root, text=str(self.eval(stmt[1])),
-                       bg="#1a1a2e", fg="#e0e0f0", font=("Arial", 12), pady=5)
-        lbl.pack()
+        if kind == "window":
+            title = str(self.eval(stmt[1]))
+            w = int(self.eval(stmt[2]) if isinstance(stmt[2], tuple) else stmt[2])
+            h = int(self.eval(stmt[3]) if isinstance(stmt[3], tuple) else stmt[3])
+            self.gui_root = tk.Tk()
+            self.gui_root.title(title)
+            self.gui_root.geometry(f"{w}x{h}")
+            self.gui_root.configure(bg=BG)
+            self.gui_root.resizable(True, True)
+            # scrollable main frame
+            canvas = tk.Canvas(self.gui_root, bg=BG, highlightthickness=0)
+            scroll = tk.Scrollbar(self.gui_root, orient="vertical", command=canvas.yview)
+            self.gui_scroll_frame = tk.Frame(canvas, bg=BG)
+            self.gui_scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+            canvas.create_window((0, 0), window=self.gui_scroll_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scroll.set)
+            canvas.pack(side="left", fill="both", expand=True)
+            scroll.pack(side="right", fill="y")
+            self.gui_frame_stack = [self.gui_scroll_frame]
+            return
 
-    def _gui_button(self, stmt):
-        if not self.gui_root: raise WareError("No window. Use 'make window' first.")
-        text, body = self.eval(stmt[1]), stmt[2]
-        def on_click():
+        self._require_gui()
+        parent = self._gui_parent()
+        pad = {"padx": 10, "pady": 4}
+
+        if kind == "label":
+            txt = str(self.eval(stmt[1]))
+            tk.Label(parent, text=txt, bg=BG, fg=FG, font=FONT,
+                     wraplength=400, justify="left").pack(anchor="w", **pad)
+
+        elif kind == "textbox":
+            name = stmt[1]
+            e = tk.Entry(parent, bg=BG2, fg=FG, font=MONO,
+                         insertbackground=ACC, relief="flat", bd=4)
+            e.pack(fill="x", **pad)
+            self.gui_widgets[name] = e
+
+        elif kind == "password":
+            name = stmt[1]
+            e = tk.Entry(parent, bg=BG2, fg=FG, font=MONO,
+                         insertbackground=ACC, relief="flat", bd=4, show="•")
+            e.pack(fill="x", **pad)
+            self.gui_widgets[name] = e
+
+        elif kind == "number_input":
+            name, mn, mx = stmt[1], stmt[2], stmt[3]
+            mn_v = self.eval(mn) if mn else None
+            mx_v = self.eval(mx) if mx else None
+            frame = tk.Frame(parent, bg=BG)
+            frame.pack(fill="x", **pad)
+            var = tk.StringVar(value=str(mn_v) if mn_v is not None else "0")
+            e = tk.Entry(frame, textvariable=var, bg=BG2, fg=FG, font=MONO,
+                         insertbackground=ACC, relief="flat", bd=4, width=12)
+            e.pack(side="left")
+            if mn_v is not None and mx_v is not None:
+                tk.Label(frame, text=f"  ({mn_v}–{mx_v})", bg=BG, fg="#6b68a0", font=FONT).pack(side="left")
+            self.gui_widgets[name] = e
+
+        elif kind == "multiline":
+            name = stmt[1]
+            t = tk.Text(parent, bg=BG2, fg=FG, font=MONO, height=5,
+                        insertbackground=ACC, relief="flat", bd=4)
+            t.pack(fill="x", **pad)
+            self.gui_widgets[name] = t
+
+        elif kind == "button":
+            lbl, body = str(self.eval(stmt[1])), stmt[2]
+            interp = self
+            def on_click(b=body):
+                try:
+                    for s in b: interp.exec(s)
+                    interp.gui_root.update()
+                except ReturnSignal: pass
+                except Exception as ex:
+                    messagebox.showerror("Ware Error", str(ex))
+            b = tk.Button(parent, text=lbl, command=on_click,
+                          bg=ACC, fg="white", font=FONT,
+                          relief="flat", padx=12, pady=6, cursor="hand2",
+                          activebackground="#9b8df8", activeforeground="white")
+            b.pack(fill="x", **pad)
+
+        elif kind == "checkbox":
+            name, lbl = stmt[1], str(self.eval(stmt[2]))
+            var = tk.BooleanVar(value=False)
+            cb = tk.Checkbutton(parent, text=lbl, variable=var,
+                                bg=BG, fg=FG, font=FONT,
+                                selectcolor=BG2, activebackground=BG,
+                                activeforeground=FG)
+            cb.pack(anchor="w", **pad)
+            self.gui_widgets[name] = var  # store BooleanVar
+
+        elif kind == "slider":
+            name = stmt[1]
+            mn = float(self.eval(stmt[2])); mx = float(self.eval(stmt[3]))
+            step = float(self.eval(stmt[4])) if stmt[4] else 1.0
+            frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+            var = tk.DoubleVar(value=mn)
+            lbl = tk.Label(frame, textvariable=var, bg=BG, fg=ACC, font=MONO, width=7)
+            s = tk.Scale(frame, from_=mn, to=mx, resolution=step, orient="horizontal",
+                         variable=var, bg=BG, fg=FG, troughcolor=BG2,
+                         highlightthickness=0, showvalue=False)
+            s.pack(side="left", fill="x", expand=True)
+            lbl.pack(side="left")
+            self.gui_widgets[name] = var  # store DoubleVar
+
+        elif kind == "dropdown":
+            name = stmt[1]; opts = self.eval(stmt[2])
+            if not isinstance(opts, list): opts = [str(opts)]
+            var = tk.StringVar(value=str(opts[0]) if opts else "")
+            dd = tk.OptionMenu(parent, var, *[str(o) for o in opts])
+            dd.configure(bg=BG2, fg=FG, font=FONT, relief="flat",
+                         highlightthickness=0, activebackground=ACC)
+            dd["menu"].configure(bg=BG2, fg=FG)
+            dd.pack(fill="x", **pad)
+            self.gui_widgets[name] = var  # store StringVar
+
+        elif kind == "progress":
+            name = stmt[1]
+            try:
+                from tkinter import ttk
+                frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+                pvar = tk.DoubleVar(value=0)
+                pb = ttk.Progressbar(frame, variable=pvar, maximum=100, length=300)
+                pb.pack(fill="x")
+                self.gui_widgets[name] = pvar
+            except Exception:
+                # fallback: canvas bar
+                frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+                c = tk.Canvas(frame, height=12, bg=BG2, highlightthickness=0)
+                c.pack(fill="x"); self.gui_widgets[name] = c
+
+        elif kind == "image":
+            try:
+                from PIL import Image as PILImage, ImageTk
+                path = str(self.eval(stmt[1]))
+                img = PILImage.open(path); img = img.resize((300, 200))
+                photo = ImageTk.PhotoImage(img)
+                lbl = tk.Label(parent, image=photo, bg=BG)
+                lbl.image = photo; lbl.pack(**pad)
+            except Exception as ex:
+                tk.Label(parent, text=f"[image: {ex}]",
+                         bg=BG, fg="#ff6b8a", font=FONT).pack(**pad)
+
+        elif kind == "canvas":
+            name = stmt[1]
+            w = int(self.eval(stmt[2])); h = int(self.eval(stmt[3]))
+            c = tk.Canvas(parent, width=w, height=h, bg="#0d0d14",
+                          highlightbackground=ACC, highlightthickness=1)
+            c.pack(**pad)
+            self.gui_widgets[name] = c
+
+        elif kind == "row":
+            body = stmt[1]
+            frame = tk.Frame(parent, bg=BG)
+            frame.pack(fill="x", **pad)
+            self.gui_frame_stack.append(frame)
+            for child in frame.winfo_children(): child.pack_configure(side="left")
+            # temporarily patch pack to use side=left
+            old_pack = tk.Widget.pack
+            def left_pack(w, **kw): kw.setdefault("side", "left"); kw.setdefault("padx", 4); old_pack(w, **kw)
+            tk.Widget.pack = left_pack
             try:
                 for s in body: self.exec(s)
-            except Exception as e:
-                messagebox.showerror("Ware Error", str(e))
-        btn = tk.Button(self.gui_root, text=str(text), command=on_click,
-                        bg="#3a3a5c", fg="#e0e0f0", font=("Arial", 11),
-                        relief="flat", padx=10, pady=5, cursor="hand2")
-        btn.pack(pady=4)
+            finally:
+                tk.Widget.pack = old_pack
+                self.gui_frame_stack.pop()
 
-    def _gui_textbox(self, stmt):
-        if not self.gui_root: raise WareError("No window. Use 'make window' first.")
-        name = stmt[1]
-        entry = tk.Entry(self.gui_root, bg="#22223a", fg="#e0e0f0",
-                         font=("Arial", 11), insertbackground="#a78bfa",
-                         relief="flat", width=30)
-        entry.pack(pady=4)
-        self.gui_widgets[name] = entry
-        self.env[name] = entry
+        elif kind == "column":
+            body = stmt[1]
+            frame = tk.Frame(parent, bg=BG, bd=0)
+            frame.pack(fill="x", **pad)
+            self.gui_frame_stack.append(frame)
+            for s in body: self.exec(s)
+            self.gui_frame_stack.pop()
+
+        elif kind == "separator":
+            tk.Frame(parent, bg="#2a2a45", height=1).pack(fill="x", padx=10, pady=8)
+
+        elif kind == "status":
+            name = stmt[1]; txt = str(self.eval(stmt[2]))
+            var = tk.StringVar(value=txt)
+            lbl = tk.Label(parent, textvariable=var, bg=BG, fg="#6b68a0", font=FONT)
+            lbl.pack(**pad)
+            self.gui_widgets[name] = var
+
+        elif kind == "badge":
+            name = stmt[1]; txt = str(self.eval(stmt[2])); style = stmt[3]
+            colors = {"info": ("#3a2a6e","#c084fc"), "ok": ("#1a3a2a","#5ef0c0"),
+                      "warn": ("#3a2e10","#fbbf24"), "err": ("#3a1020","#ff6b8a")}
+            bg2, fg2 = colors.get(style, colors["info"])
+            var = tk.StringVar(value=txt)
+            lbl = tk.Label(parent, textvariable=var, bg=bg2, fg=fg2,
+                           font=(FONT[0], 9, "bold"), padx=8, pady=2)
+            lbl.pack(anchor="w", **pad)
+            self.gui_widgets[name] = var
+
+        elif kind == "listbox":
+            name = stmt[1]; items = self.eval(stmt[2])
+            if not isinstance(items, list): items = []
+            frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+            var = tk.StringVar(value=[str(i) for i in items])
+            lb = tk.Listbox(frame, listvariable=var, bg=BG2, fg=FG,
+                            font=MONO, selectbackground=ACC, relief="flat",
+                            height=min(6, max(3, len(items))))
+            lb.pack(fill="x")
+            self.gui_widgets[name] = lb
+
+        elif kind == "table":
+            name = stmt[1]; rows = self.eval(stmt[2])
+            hdrs = self.eval(stmt[3]) if stmt[3] else None
+            if not isinstance(rows, list): rows = []
+            try:
+                from tkinter import ttk
+                frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+                cols = hdrs if hdrs else ([f"Col {i+1}" for i in range(len(rows[0]) if rows else 1)])
+                tree = ttk.Treeview(frame, columns=list(range(len(cols))),
+                                    show="headings", height=min(6, len(rows)+1))
+                for i, h2 in enumerate(cols):
+                    tree.heading(i, text=str(h2)); tree.column(i, width=80)
+                for row in rows:
+                    tree.insert("", "end", values=[str(c) for c in (row if isinstance(row, list) else [row])])
+                tree.pack(fill="x")
+                self.gui_widgets[name] = tree
+            except Exception as ex:
+                tk.Label(parent, text=f"[table: {ex}]", bg=BG, fg="#ff6b8a", font=FONT).pack(**pad)
+
+        elif kind == "color_picker":
+            name = stmt[1]
+            init = str(self.eval(stmt[2])) if stmt[2] else "#7c6af7"
+            frame = tk.Frame(parent, bg=BG); frame.pack(fill="x", **pad)
+            var = tk.StringVar(value=init)
+            def pick_color(v=var):
+                from tkinter import colorchooser
+                color = colorchooser.askcolor(color=v.get(), title="Pick a color")
+                if color[1]: v.set(color[1])
+            swatch = tk.Label(frame, bg=init, width=4, cursor="hand2", relief="flat")
+            swatch.pack(side="left", padx=(0,6))
+            def update_swatch(*a): 
+                try: swatch.configure(bg=var.get())
+                except: pass
+            var.trace_add("write", update_swatch)
+            e = tk.Entry(frame, textvariable=var, bg=BG2, fg=FG, font=MONO,
+                         insertbackground=ACC, relief="flat", bd=4, width=10)
+            e.pack(side="left")
+            tk.Button(frame, text="Pick…", command=pick_color,
+                      bg=BG2, fg=FG, font=FONT, relief="flat",
+                      padx=6, cursor="hand2").pack(side="left", padx=4)
+            self.gui_widgets[name] = var
+
+        elif kind == "spacer":
+            tk.Frame(parent, bg=BG, height=10).pack()
+
+        elif kind == "set":
+            name = stmt[1]; prop = stmt[2]; val = self.eval(stmt[3])
+            w = self.gui_widgets.get(name)
+            if w is None: return
+            if prop in ("value", "text", "progress"):
+                if isinstance(w, (tk.StringVar, tk.DoubleVar, tk.BooleanVar, tk.IntVar)):
+                    try: w.set(val)
+                    except: w.set(str(val))
+                elif isinstance(w, tk.Entry):
+                    w.delete(0, "end"); w.insert(0, str(val))
+                elif isinstance(w, tk.Text):
+                    w.delete("1.0", "end"); w.insert("1.0", str(val))
+                elif isinstance(w, tk.Canvas):
+                    # progress bar canvas fallback
+                    w.delete("all")
+                    pct = min(100, max(0, float(val)))
+                    width = w.winfo_width() or 300
+                    w.create_rectangle(0, 0, width * pct / 100, 12, fill=ACC, outline="")
+                # update window
+                if self.gui_root:
+                    try: self.gui_root.update()
+                    except: pass
+            elif prop == "color":
+                if isinstance(w, (tk.Label, tk.Button)):
+                    try: w.configure(fg=str(val))
+                    except: pass
+            elif prop == "background":
+                if hasattr(w, "configure"):
+                    try: w.configure(bg=str(val))
+                    except: pass
+            elif prop == "visible":
+                wid = w if hasattr(w, "pack_forget") else None
+                if wid:
+                    if val: wid.pack()
+                    else: wid.pack_forget()
+            elif prop == "disabled":
+                if hasattr(w, "configure"):
+                    try: w.configure(state="disabled" if val else "normal")
+                    except: pass
+
+        elif kind == "alert":
+            if HAS_GUI and self.gui_root:
+                messagebox.showinfo("Alert", str(self.eval(stmt[1])))
+            else:
+                print(f"[alert] {self.eval(stmt[1])}")
+
+        elif kind == "confirm":
+            name = stmt[1]; msg = str(self.eval(stmt[2]))
+            if HAS_GUI and self.gui_root:
+                result = messagebox.askyesno("Confirm", msg)
+                self.env[name] = result
+            else:
+                ans = input(f"[confirm] {msg} (y/n): ").strip().lower()
+                self.env[name] = ans in ("y", "yes", "true", "1")
+
+        elif kind == "draw":
+            name = stmt[2]; cmd = stmt[2]
+            # reparse: stmt = ("gui_draw", canv_name, cmd, ...)
+            canv_name = stmt[1]; cmd = stmt[2]
+            c = self.gui_widgets.get(canv_name)
+            if not isinstance(c, tk.Canvas):
+                raise WareError(f"Canvas '{canv_name}' not found")
+            if cmd == "clear": c.delete("all")
+            elif cmd == "color":
+                col = str(self.eval(stmt[3]))
+                c._ware_color = col
+            elif cmd == "line":
+                x1,y1,x2,y2 = [self.eval(stmt[i]) for i in range(3,7)]
+                c.create_line(x1,y1,x2,y2, fill=getattr(c,"_ware_color","#7c6af7"), width=2)
+            elif cmd == "rect":
+                x,y,w,h = [self.eval(stmt[i]) for i in range(3,7)]
+                c.create_rectangle(x,y,x+w,y+h, fill=getattr(c,"_ware_color","#7c6af7"), outline="")
+            elif cmd == "circle":
+                x,y,r = [self.eval(stmt[i]) for i in range(3,6)]
+                c.create_oval(x-r,y-r,x+r,y+r, fill=getattr(c,"_ware_color","#7c6af7"), outline="")
+            elif cmd == "text":
+                x,y = self.eval(stmt[3]),self.eval(stmt[4]); t = str(self.eval(stmt[5]))
+                c.create_text(x,y, text=t, fill=getattr(c,"_ware_color","#e0e0f0"),
+                              font=("Consolas",12))
+            if self.gui_root:
+                try: self.gui_root.update()
+                except: pass
 
     # ── Evaluator ─────────────────────────────────────────────────────────────
 
@@ -859,12 +1313,25 @@ class Interpreter:
         if k == "var":
             name = node[1]
             val = self._lookup(name)
-            if HAS_GUI and isinstance(val, tk.Entry): return val.get()
+            if HAS_GUI:
+                if isinstance(val, tk.Entry):    return val.get()
+                if isinstance(val, tk.Text):     return val.get("1.0", "end-1c")
+                if isinstance(val, tk.Listbox):
+                    sel = val.curselection()
+                    return val.get(sel[0]) if sel else ""
+                if isinstance(val, (tk.StringVar, tk.DoubleVar, tk.BooleanVar, tk.IntVar)):
+                    v = val.get()
+                    # try numeric conversion
+                    try:
+                        return float(v) if "." in str(v) else int(v)
+                    except (ValueError, TypeError): return v
             return val
 
         if k == "index":
             obj = self.eval(node[1])
-            if HAS_GUI and isinstance(obj, tk.Entry): obj = obj.get()
+            if HAS_GUI:
+                if isinstance(obj, tk.Entry): obj = obj.get()
+                if isinstance(obj, (tk.StringVar, tk.DoubleVar)): obj = obj.get()
             idx = self.eval(node[2])
             if isinstance(obj, dict): return obj[idx]
             if isinstance(obj, str):  return obj[int(idx) - 1]
