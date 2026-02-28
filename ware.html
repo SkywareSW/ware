@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ware — a programming language built around simplicity</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d0f14;
+    --surface:  #13151c;
+    --overlay:  #1a1d27;
+    --border:   rgba(255,255,255,0.07);
+    --text:     #e2e4ef;
+    --muted:    #6b7094;
+    --green:    #a6e3a1;
+    --teal:     #94e2d5;
+    --blue:     #89b4fa;
+    --lavender: #b4befe;
+    --mauve:    #cba6f7;
+    --red:      #f38ba8;
+    --yellow:   #f9e2af;
+    --peach:    #fab387;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.4;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    background: rgba(13,15,20,0.6);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1.1rem; letter-spacing: 0.08em;
+    color: var(--mauve); text-shadow: 0 0 20px rgba(203,166,247,0.4);
+    text-decoration: none;
+  }
+  .logo span { color: var(--lavender); }
+  nav { display: flex; gap: 1.8rem; align-items: center; }
+  nav a {
+    font-size: 0.72rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+    text-decoration: none; transition: color 0.2s;
+  }
+  nav a:hover { color: var(--lavender); }
+  .nav-badge {
+    font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 0.2rem 0.7rem; border-radius: 999px;
+    background: rgba(203,166,247,0.08);
+    border: 1px solid rgba(203,166,247,0.2);
+    color: var(--mauve);
+  }
+
+  /* ── ORBS ── */
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(90px); opacity: 0.25;
+    animation: drift 14s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  .orb1 { width:600px;height:600px; background:radial-gradient(circle,var(--mauve),transparent 70%); top:-200px;left:-100px; animation-delay:0s; }
+  .orb2 { width:400px;height:400px; background:radial-gradient(circle,var(--lavender),transparent 70%); bottom:-100px;right:-80px; animation-delay:-5s; }
+  .orb3 { width:280px;height:280px; background:radial-gradient(circle,var(--blue),transparent 70%); top:40%;right:30%; animation-delay:-9s; }
+  @keyframes drift {
+    from { transform:translate(0,0) scale(1); }
+    to   { transform:translate(30px,25px) scale(1.08); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 90vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 4rem;
+    padding: 6rem 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-left { position: relative; z-index: 1; }
+
+  .breadcrumb {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 2rem;
+    animation: fadeUp 0.4s ease both;
+  }
+  .breadcrumb a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .breadcrumb a:hover { color: var(--text); }
+  .breadcrumb .sep { color: rgba(255,255,255,0.15); }
+  .breadcrumb .current { color: var(--mauve); }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif; font-weight: 900;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.9; letter-spacing: -0.04em;
+    color: var(--mauve);
+    text-shadow: 0 0 60px rgba(203,166,247,0.25);
+    animation: fadeUp 0.4s 0.1s ease both; opacity: 0;
+  }
+
+  .hero-version {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    margin-top: 1.2rem;
+    font-size: 0.7rem; letter-spacing: 0.12em;
+    padding: 0.35rem 1rem; border-radius: 999px;
+    background: rgba(203,166,247,0.08);
+    border: 1px solid rgba(203,166,247,0.2);
+    color: var(--mauve);
+    animation: fadeUp 0.4s 0.15s ease both; opacity: 0;
+  }
+  .version-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mauve);
+    box-shadow: 0 0 6px rgba(203,166,247,0.8);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .hero-desc {
+    margin-top: 1.5rem;
+    color: var(--muted); font-size: 0.82rem; line-height: 1.8;
+    max-width: 440px;
+    animation: fadeUp 0.4s 0.2s ease both; opacity: 0;
+  }
+
+  .hero-pills {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: 1.5rem;
+    animation: fadeUp 0.4s 0.25s ease both; opacity: 0;
+  }
+  .pill {
+    font-size: 0.62rem; letter-spacing: 0.1em;
+    padding: 0.25rem 0.7rem; border-radius: 999px; border: 1px solid;
+  }
+  .pill-m { color:var(--mauve);  border-color:rgba(203,166,247,0.25); background:rgba(203,166,247,0.06); }
+  .pill-l { color:var(--lavender); border-color:rgba(180,190,254,0.25); background:rgba(180,190,254,0.06); }
+  .pill-b { color:var(--blue);   border-color:rgba(137,180,250,0.25); background:rgba(137,180,250,0.06); }
+  .pill-t { color:var(--teal);   border-color:rgba(148,226,213,0.25); background:rgba(148,226,213,0.06); }
+  .pill-y { color:var(--yellow); border-color:rgba(249,226,175,0.25); background:rgba(249,226,175,0.06); }
+
+  .hero-actions {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    margin-top: 2rem;
+    animation: fadeUp 0.4s 0.3s ease both; opacity: 0;
+  }
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.65rem 1.4rem; border-radius: 6px;
+    text-decoration: none; transition: all 0.2s;
+    cursor: pointer; border: none;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-mauve {
+    background: rgba(203,166,247,0.1);
+    border: 1px solid rgba(203,166,247,0.3);
+    color: var(--mauve);
+  }
+  .btn-mauve:hover {
+    background: rgba(203,166,247,0.18); border-color: var(--mauve);
+    box-shadow: 0 0 24px rgba(203,166,247,0.12);
+  }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+  /* ── CODE CARD (hero right) ── */
+  .hero-right {
+    position: relative; z-index: 1;
+    animation: fadeUp 0.4s 0.2s ease both; opacity: 0;
+  }
+
+  .code-card {
+    background: rgba(13,15,20,0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; overflow: hidden;
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.03),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .card-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .card-bar-left { display: flex; align-items: center; gap: 6px; }
+  .cb { width:9px; height:9px; border-radius:50%; }
+  .cb-r{background:#f38ba8;} .cb-y{background:#f9e2af;} .cb-g{background:#a6e3a1;}
+  .card-title { font-size:9px; letter-spacing:0.1em; color:var(--muted); margin-left:6px; }
+  .copy-btn-sm {
+    font-family:'Space Mono',monospace; font-size:0.6rem; letter-spacing:0.1em;
+    color:var(--mauve); background:rgba(203,166,247,0.08);
+    border:1px solid rgba(203,166,247,0.2); border-radius:4px; padding:2px 8px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .copy-btn-sm:hover { background:rgba(203,166,247,0.15); }
+  .copy-btn-sm.copied { color:var(--teal); border-color:rgba(148,226,213,0.3); }
+
+  .card-body {
+    padding: 16px 18px; font-size: 11px; line-height: 1.9;
+    font-family: 'Space Mono', monospace; overflow-x: auto;
+  }
+
+  /* syntax colors */
+  .kw  { color: var(--mauve); }      /* keywords: is, function, if, while */
+  .fn  { color: var(--blue); }       /* function names */
+  .str { color: var(--yellow); }     /* strings */
+  .num { color: var(--peach); }      /* numbers */
+  .cmt { color: var(--muted); }      /* comments */
+  .var { color: var(--text); }       /* variables */
+  .op  { color: var(--lavender); }   /* operators */
+  .cls { color: var(--teal); }       /* class names */
+  .blt { color: var(--green); }      /* builtins: show, add, etc */
+  .gui { color: var(--peach); }      /* gui keywords: make, draw */
+  .ln  { color: rgba(255,255,255,0.12); user-select:none; margin-right:14px; }
+
+  /* ── SECTIONS ── */
+  .section {
+    padding: 4rem 5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--muted); display: flex; align-items: center; gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .section-label::before { content:''; width:24px; height:1px; background:var(--border); }
+  .section-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 2rem; letter-spacing: -0.03em; margin-bottom: 2rem;
+  }
+
+  /* ── SYNTAX CARDS ── */
+  .syntax-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+  }
+  .syntax-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .syntax-card:hover { border-color: rgba(203,166,247,0.2); transform: translateY(-2px); }
+  .syntax-card.full { grid-column: 1 / -1; }
+
+  .sc-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.65rem 1rem;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+  .sc-title { font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
+  .sc-lang {
+    font-size: 0.6rem; letter-spacing: 0.1em; padding: 2px 7px;
+    border-radius: 4px; background: rgba(203,166,247,0.08);
+    border: 1px solid rgba(203,166,247,0.15); color: var(--mauve);
+  }
+  .sc-body {
+    padding: 1rem 1.2rem; font-size: 0.72rem;
+    line-height: 1.8; font-family: 'Space Mono', monospace;
+    overflow-x: auto;
+  }
+
+  /* ── REFERENCE TABLES ── */
+  .ref-table {
+    width: 100%; border-collapse: collapse; font-size: 0.72rem;
+  }
+  .ref-table th {
+    text-align: left; padding: 0.6rem 1rem;
+    font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .ref-table td {
+    padding: 0.65rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--muted); vertical-align: top; line-height: 1.5;
+  }
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+  .ref-table td:first-child { color: var(--teal); white-space: nowrap; }
+
+  .ref-tabs {
+    display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+  .ref-tab {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    transition: all 0.2s;
+  }
+  .ref-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  .ref-tab.active {
+    background: rgba(203,166,247,0.1);
+    border-color: rgba(203,166,247,0.3); color: var(--mauve);
+  }
+  .ref-panel { display: none; }
+  .ref-panel.active { display: block; }
+
+  .ref-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+
+  /* ── GUI SECTION ── */
+  .gui-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+  }
+  .gui-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .gui-card:hover { border-color: rgba(250,179,135,0.25); transform: translateY(-2px); }
+  .gui-icon { font-size: 1.4rem; margin-bottom: 0.6rem; }
+  .gui-name {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 0.85rem; color: var(--peach); margin-bottom: 0.35rem;
+  }
+  .gui-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.6; }
+  .gui-code {
+    margin-top: 0.6rem; font-size: 0.65rem;
+    color: var(--teal); font-family: 'Space Mono', monospace;
+    background: rgba(255,255,255,0.03); border-radius: 4px;
+    padding: 0.3rem 0.6rem; border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* ── INSTALL ── */
+  .install-opts {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .install-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .install-card:hover { border-color: rgba(203,166,247,0.2); }
+  .ic-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);
+  }
+  .ic-title { font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); }
+  .ic-body { padding: 1rem 1.2rem; font-size: 0.75rem; line-height: 1.9; font-family: 'Space Mono', monospace; }
+
+  .copy-btn {
+    font-family:'Space Mono',monospace; font-size:0.65rem; letter-spacing:0.1em;
+    color:var(--mauve); background:rgba(203,166,247,0.08);
+    border:1px solid rgba(203,166,247,0.2); border-radius:4px; padding:0.3rem 0.8rem;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .copy-btn:hover { background:rgba(203,166,247,0.15); }
+  .copy-btn.copied { color:var(--teal); border-color:rgba(148,226,213,0.3); }
+
+  /* ── RELATED ── */
+  .related-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+  }
+  .related-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem 1.4rem;
+    text-decoration: none; display: flex; flex-direction: column; gap: 0.6rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .related-card:hover { transform: translateY(-2px); }
+  .related-card.rb:hover { border-color: rgba(137,180,250,0.3); }
+  .related-card.rg:hover { border-color: rgba(166,227,161,0.3); }
+  .related-card.rt:hover { border-color: rgba(148,226,213,0.3); }
+  .related-top { display:flex; align-items:center; justify-content:space-between; }
+  .related-name { font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; }
+  .related-desc { font-size:0.68rem; color:var(--muted); line-height:1.5; }
+  .related-arrow { color:var(--muted); font-size:0.85rem; transition:all 0.2s; }
+  .related-card:hover .related-arrow { transform:translate(2px,-2px); color:var(--text); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 2.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: 0.68rem; letter-spacing: 0.08em;
+  }
+  footer a { color: var(--mauve); text-decoration: none; }
+  footer a:hover { color: var(--lavender); }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns:1fr; padding:4rem 2rem; min-height:auto; gap:3rem; }
+    .section { padding:3rem 2rem; }
+    .syntax-grid, .gui-grid, .install-opts, .related-grid { grid-template-columns:1fr; }
+    .syntax-card.full { grid-column: auto; }
+    header { padding:1rem 1.5rem; }
+    nav { gap:1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="https://SkywareSW.github.io/SkywareSW/">ware<span>.lang</span></a>
+  <nav>
+    <span class="nav-badge">v4.0</span>
+    <a href="#syntax">syntax</a>
+    <a href="#builtins">builtins</a>
+    <a href="#gui">gui</a>
+    <a href="#install">install</a>
+    <a href="https://github.com/SkywareSW/ware" target="_blank">github ↗</a>
+  </nav>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <div class="hero-left">
+    <div class="breadcrumb">
+      <a href="https://SkywareSW.github.io/SkywareSW/">SkywareSW</a>
+      <span class="sep">/</span>
+      <span class="current">ware</span>
+    </div>
+
+    <h1 class="hero-title">ware</h1>
+
+    <div class="hero-version">
+      <span class="version-dot"></span>
+      version 4.0
+    </div>
+
+    <p class="hero-desc">
+      a clean, readable scripting language with built-in GUI support. write less, do more — ware reads like plain english and runs on python.
+    </p>
+
+    <div class="hero-pills">
+      <span class="pill pill-m">readable syntax</span>
+      <span class="pill pill-l">built-in GUI</span>
+      <span class="pill pill-b">python runtime</span>
+      <span class="pill pill-t">VS Code extension</span>
+      <span class="pill pill-y">35+ snippets</span>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn btn-mauve" href="#install">↓ get started</a>
+      <a class="btn btn-ghost" href="#syntax">docs</a>
+      <a class="btn btn-ghost" href="https://github.com/SkywareSW/ware" target="_blank">github ↗</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="code-card">
+      <div class="card-bar">
+        <div class="card-bar-left">
+          <div class="cb cb-r"></div><div class="cb cb-y"></div><div class="cb cb-g"></div>
+          <span class="card-title">hello.ware</span>
+        </div>
+        <button class="copy-btn-sm" id="heroCopyBtn" onclick="copyHero()">copy</button>
+      </div>
+      <div class="card-body">
+<span class="cmt">// a taste of ware</span>
+
+<span class="kw">function</span> <span class="fn">greet</span> <span class="kw">which has</span> <span class="var">name</span>, <span class="var">greeting</span> = <span class="str">"Hello"</span>,
+    <span class="blt">show</span> <span class="str">f"</span><span class="op">{</span><span class="var">greeting</span><span class="op">}</span><span class="str">, </span><span class="op">{</span><span class="var">name</span><span class="op">}</span><span class="str">!"</span>
+<span class="op">.</span>
+
+<span class="var">name</span> <span class="kw">is</span> <span class="str">"skyware"</span>
+<span class="var">version</span> <span class="kw">is</span> <span class="num">4.0</span>
+
+<span class="fn">greet</span>(<span class="var">name</span>)
+<span class="fn">greet</span>(<span class="str">"world"</span>, <span class="str">"hey"</span>)
+
+<span class="cmt">// lists work naturally</span>
+<span class="var">langs</span> <span class="kw">is</span> [<span class="str">"ware"</span>, <span class="str">"python"</span>, <span class="str">"shell"</span>]
+<span class="kw">for each</span> <span class="var">lang</span> <span class="kw">in</span> <span class="var">langs</span>,
+    <span class="blt">show</span> <span class="str">f"  - </span><span class="op">{</span><span class="var">lang</span><span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+
+<span class="cmt">// error handling</span>
+<span class="kw">try</span>,
+    <span class="var">result</span> <span class="kw">is</span> <span class="blt">number</span>(<span class="str">"oops"</span>)
+<span class="kw">catch</span> <span class="var">err</span>,
+    <span class="blt">show</span> <span class="str">f"caught: </span><span class="op">{</span><span class="var">err</span><span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SYNTAX ── -->
+<section class="section" id="syntax">
+  <div class="section-label">language reference</div>
+  <h2 class="section-title">syntax <span style="color:var(--mauve)">overview</span></h2>
+
+  <div class="syntax-grid">
+
+    <!-- variables -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">variables &amp; constants</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="var">name</span> <span class="kw">is</span> <span class="str">"Alice"</span>
+<span class="var">age</span> <span class="kw">is</span> <span class="num">25</span>
+<span class="var">active</span> <span class="kw">is</span> <span class="blt">true</span>
+<span class="var">nothing_val</span> <span class="kw">is</span> <span class="blt">nothing</span>
+
+<span class="kw">constant</span> <span class="var">PI</span> <span class="kw">is</span> <span class="num">3.14159</span>
+<span class="kw">constant</span> <span class="var">APP</span> <span class="kw">is</span> <span class="str">"ware"</span>
+      </div>
+    </div>
+
+    <!-- control flow -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">control flow</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="kw">if</span> <span class="var">score</span> <span class="kw">is bigger than</span> <span class="num">90</span>,
+    <span class="blt">show</span> <span class="str">"A grade"</span>
+<span class="kw">else</span>,
+    <span class="blt">show</span> <span class="str">"try again"</span>
+<span class="op">.</span>
+
+<span class="kw">while</span> <span class="var">count</span> <span class="kw">is smaller than</span> <span class="num">5</span>,
+    <span class="blt">show</span> <span class="str">f"count: </span><span class="op">{</span><span class="var">count</span><span class="op">}</span><span class="str">"</span>
+    <span class="var">count</span> <span class="kw">is</span> <span class="var">count</span> <span class="op">+</span> <span class="num">1</span>
+<span class="op">.</span>
+      </div>
+    </div>
+
+    <!-- loops -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">loops</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="cmt">// counted range</span>
+<span class="kw">during</span> <span class="var">i</span>, <span class="fn">range</span>(<span class="num">10</span>),
+    <span class="blt">show</span> <span class="str">f"</span><span class="op">{</span><span class="var">i</span><span class="op">}</span><span class="str"> squared = </span><span class="op">{</span><span class="var">i</span> <span class="op">*</span> <span class="var">i</span><span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+
+<span class="cmt">// for each</span>
+<span class="var">fruits</span> <span class="kw">is</span> [<span class="str">"apple"</span>, <span class="str">"banana"</span>]
+<span class="kw">for each</span> <span class="var">fruit</span> <span class="kw">in</span> <span class="var">fruits</span>,
+    <span class="blt">show</span> <span class="str">f"  - </span><span class="op">{</span><span class="var">fruit</span><span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+      </div>
+    </div>
+
+    <!-- functions -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">functions</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="kw">function</span> <span class="fn">greet</span> <span class="kw">which has</span> <span class="var">name</span>, <span class="var">msg</span> = <span class="str">"Hello"</span>,
+    <span class="blt">show</span> <span class="str">f"</span><span class="op">{</span><span class="var">msg</span><span class="op">}</span><span class="str">, </span><span class="op">{</span><span class="var">name</span><span class="op">}</span><span class="str">!"</span>
+<span class="op">.</span>
+
+<span class="cmt">// multiple return values</span>
+<span class="kw">function</span> <span class="fn">min_max</span> <span class="kw">which has</span> <span class="var">nums</span>,
+    <span class="kw">return</span> <span class="fn">min_of</span>(<span class="var">nums</span>), <span class="fn">max_of</span>(<span class="var">nums</span>)
+<span class="op">.</span>
+
+<span class="var">lo</span>, <span class="var">hi</span> <span class="kw">is</span> <span class="fn">min_max</span>([<span class="num">3</span>, <span class="num">1</span>, <span class="num">9</span>, <span class="num">4</span>])
+      </div>
+    </div>
+
+    <!-- classes -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">classes</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="kw">class</span> <span class="cls">Animal</span>,
+    <span class="kw">function</span> <span class="fn">init</span> <span class="kw">which has</span> <span class="var">name</span>, <span class="var">sound</span>,
+        <span class="var">self</span>.<span class="var">name</span> <span class="kw">is</span> <span class="var">name</span>
+        <span class="var">self</span>.<span class="var">sound</span> <span class="kw">is</span> <span class="var">sound</span>
+    <span class="op">.</span>
+    <span class="kw">function</span> <span class="fn">speak</span> <span class="kw">which has</span>,
+        <span class="blt">show</span> <span class="str">f"</span><span class="op">{</span><span class="var">self</span>.<span class="var">name</span><span class="op">}</span><span class="str"> says </span><span class="op">{</span><span class="var">self</span>.<span class="var">sound</span><span class="op">}</span><span class="str">!"</span>
+    <span class="op">.</span>
+<span class="op">.</span>
+
+<span class="var">dog</span> <span class="kw">is new</span> <span class="cls">Animal</span>(<span class="str">"Rex"</span>, <span class="str">"woof"</span>)
+<span class="var">dog</span>.<span class="fn">speak</span>()
+      </div>
+    </div>
+
+    <!-- error handling + file i/o -->
+    <div class="syntax-card">
+      <div class="sc-header"><span class="sc-title">errors &amp; file i/o</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body">
+<span class="kw">try</span>,
+    <span class="var">result</span> <span class="kw">is</span> <span class="fn">number</span>(<span class="str">"not a number"</span>)
+<span class="kw">catch</span> <span class="var">err</span>,
+    <span class="blt">show</span> <span class="str">f"caught: </span><span class="op">{</span><span class="var">err</span><span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+
+<span class="cmt">// file i/o</span>
+<span class="kw">open</span> <span class="str">"data.txt"</span> <span class="kw">as</span> <span class="var">content</span>
+<span class="blt">show</span> <span class="var">content</span>
+
+<span class="fn">write</span>(<span class="str">"out.txt"</span>, <span class="str">"hello!\n"</span>)
+<span class="fn">append</span>(<span class="str">"log.txt"</span>, <span class="str">f"entry: </span><span class="op">{</span><span class="var">msg</span><span class="op">}</span><span class="str">\n"</span>)
+      </div>
+    </div>
+
+    <!-- closures -->
+    <div class="syntax-card full">
+      <div class="sc-header"><span class="sc-title">closures &amp; dictionaries</span><span class="sc-lang">ware</span></div>
+      <div class="sc-body" style="display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+        <div>
+<span class="kw">function</span> <span class="fn">make_counter</span> <span class="kw">which has</span> <span class="var">start</span>,
+    <span class="var">count</span> <span class="kw">is</span> <span class="var">start</span>
+    <span class="kw">function</span> <span class="fn">increment</span> <span class="kw">which has</span> <span class="var">by</span> = <span class="num">1</span>,
+        <span class="var">count</span> <span class="kw">is</span> <span class="var">count</span> <span class="op">+</span> <span class="var">by</span>
+        <span class="kw">return</span> <span class="var">count</span>
+    <span class="op">.</span>
+    <span class="kw">return</span> <span class="fn">increment</span>
+<span class="op">.</span>
+
+<span class="var">c</span> <span class="kw">is</span> <span class="fn">make_counter</span>(<span class="num">0</span>)
+<span class="blt">show</span> <span class="fn">c</span>()   <span class="cmt">// 1</span>
+<span class="blt">show</span> <span class="fn">c</span>(<span class="num">5</span>) <span class="cmt">// 6</span>
+        </div>
+        <div>
+<span class="var">scores</span> <span class="kw">is</span> {<span class="str">"Alice"</span>: <span class="num">95</span>, <span class="str">"Bob"</span>: <span class="num">78</span>}
+
+<span class="kw">for each</span> <span class="var">name</span> <span class="kw">in</span> <span class="var">scores</span>,
+    <span class="blt">show</span> <span class="str">f"</span><span class="op">{</span><span class="var">name</span><span class="op">}</span><span class="str">: </span><span class="op">{</span><span class="var">scores</span>[<span class="var">name</span>]<span class="op">}</span><span class="str">"</span>
+<span class="op">.</span>
+
+<span class="blt">show</span> <span class="fn">has_key</span>(<span class="var">scores</span>, <span class="str">"Alice"</span>)
+<span class="blt">show</span> <span class="fn">keys</span>(<span class="var">scores</span>)
+<span class="blt">show</span> <span class="fn">values</span>(<span class="var">scores</span>)
+
+<span class="cmt">// import other files</span>
+<span class="kw">import</span> <span class="str">"utils.ware"</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── BUILTINS ── -->
+<section class="section" id="builtins">
+  <div class="section-label">standard library</div>
+  <h2 class="section-title">built-in <span style="color:var(--teal)">functions</span></h2>
+
+  <div class="ref-tabs">
+    <button class="ref-tab active" onclick="switchTab('math')">math</button>
+    <button class="ref-tab" onclick="switchTab('strings')">strings</button>
+    <button class="ref-tab" onclick="switchTab('stringchecks')">string checks</button>
+    <button class="ref-tab" onclick="switchTab('lists')">lists</button>
+    <button class="ref-tab" onclick="switchTab('dicts')">dicts</button>
+    <button class="ref-tab" onclick="switchTab('types')">types</button>
+  </div>
+
+  <div class="ref-wrap">
+    <div id="tab-math" class="ref-panel active">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>sqrt(x)</td><td>square root</td></tr>
+          <tr><td>abs(x)</td><td>absolute value</td></tr>
+          <tr><td>round(x, n)</td><td>round to n decimal places</td></tr>
+          <tr><td>floor(x) / ceil(x)</td><td>floor / ceiling</td></tr>
+          <tr><td>power(x, n)</td><td>x to the power n</td></tr>
+          <tr><td>log(x) / sin(x) / cos(x)</td><td>logarithm / trig functions</td></tr>
+          <tr><td>clamp(x, min, max)</td><td>constrain value to range</td></tr>
+          <tr><td>random()</td><td>random float between 0 and 1</td></tr>
+          <tr><td>random_int(a, b)</td><td>random integer between a and b</td></tr>
+          <tr><td>to_fixed(x, n)</td><td>format number to n decimal places</td></tr>
+          <tr><td>to_hex(x) / to_bin(x)</td><td>convert to hex or binary string</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tab-strings" class="ref-panel">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>length(s)</td><td>character count</td></tr>
+          <tr><td>upper(s) / lower(s)</td><td>case conversion</td></tr>
+          <tr><td>trim(s)</td><td>remove surrounding whitespace</td></tr>
+          <tr><td>strip_chars(s, chars)</td><td>remove specific edge characters</td></tr>
+          <tr><td>replace(s, old, new)</td><td>replace substring</td></tr>
+          <tr><td>contains(s, sub)</td><td>true if substring present</td></tr>
+          <tr><td>starts(s, prefix)</td><td>starts with test</td></tr>
+          <tr><td>ends(s, suffix)</td><td>ends with test</td></tr>
+          <tr><td>find(s, sub)</td><td>position of substring (1-based, 0 if not found)</td></tr>
+          <tr><td>count(s, sub)</td><td>count occurrences of substring</td></tr>
+          <tr><td>slice(s, start, end)</td><td>extract substring (1-based)</td></tr>
+          <tr><td>char_at(s, i)</td><td>character at position (1-based)</td></tr>
+          <tr><td>repeat(s, n)</td><td>repeat string n times</td></tr>
+          <tr><td>pad_left(s, n, c) / pad_right(s, n, c)</td><td>pad string to width n with char c</td></tr>
+          <tr><td>split(s, delim)</td><td>split into list</td></tr>
+          <tr><td>join(list, sep)</td><td>join list into string</td></tr>
+          <tr><td>words(s) / lines(s)</td><td>split on whitespace / newlines</td></tr>
+          <tr><td>to_chars(s)</td><td>explode into character list</td></tr>
+          <tr><td>number(s) / text(x)</td><td>parse string to number / any value to string</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tab-stringchecks" class="ref-panel">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>is_empty(s)</td><td>true if length 0</td></tr>
+          <tr><td>is_upper(s) / is_lower(s)</td><td>case check</td></tr>
+          <tr><td>is_numeric(s)</td><td>true if string is a valid number</td></tr>
+          <tr><td>is_alpha(s)</td><td>true if only letters</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tab-lists" class="ref-panel">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>size(x)</td><td>length of list, string, or dict</td></tr>
+          <tr><td>first(list) / last(list)</td><td>first / last element</td></tr>
+          <tr><td>reverse(list)</td><td>reversed copy</td></tr>
+          <tr><td>sort(list)</td><td>sorted copy</td></tr>
+          <tr><td>remove(list, i)</td><td>remove element at index i (1-based)</td></tr>
+          <tr><td>has(list, item)</td><td>true if item in list</td></tr>
+          <tr><td>index_of(list, item)</td><td>position (1-based, 0 if not found)</td></tr>
+          <tr><td>unique(list)</td><td>deduplicated copy</td></tr>
+          <tr><td>flatten(list)</td><td>flatten one level</td></tr>
+          <tr><td>sum_list(list)</td><td>sum of numeric list</td></tr>
+          <tr><td>max_of(list) / min_of(list)</td><td>maximum / minimum value</td></tr>
+          <tr><td>any_true(list) / all_true(list)</td><td>boolean aggregation</td></tr>
+          <tr><td>count_in(list, item)</td><td>count occurrences of item</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tab-dicts" class="ref-panel">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>keys(dict)</td><td>list of keys</td></tr>
+          <tr><td>values(dict)</td><td>list of values</td></tr>
+          <tr><td>has_key(dict, key)</td><td>true if key exists</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tab-types" class="ref-panel">
+      <table class="ref-table">
+        <thead><tr><th>function</th><th>description</th></tr></thead>
+        <tbody>
+          <tr><td>type_of(x)</td><td>returns "text", "number", "list", "dict", "bool", "object", or "nothing"</td></tr>
+          <tr><td>is_text(x) / is_number(x)</td><td>type predicates</td></tr>
+          <tr><td>is_list(x) / is_dict(x)</td><td>type predicates</td></tr>
+          <tr><td>is_bool(x)</td><td>boolean type check</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── GUI ── -->
+<section class="section" id="gui">
+  <div class="section-label">graphical interface</div>
+  <h2 class="section-title">built-in <span style="color:var(--peach)">GUI</span></h2>
+
+  <p style="color:var(--muted);font-size:0.78rem;line-height:1.8;max-width:620px;margin-bottom:2rem;">
+    all GUI apps start with <code style="color:var(--peach)">make window</code>. widgets are added top-to-bottom. use <code style="color:var(--peach)">make row</code> for horizontal layout. read widget values using the variable name directly.
+  </p>
+
+  <div class="gui-grid">
+    <div class="gui-card">
+      <div class="gui-icon">⌨️</div>
+      <div class="gui-name">input widgets</div>
+      <div class="gui-desc">textbox, password, number input, multiline, checkbox, slider, dropdown, color picker</div>
+      <div class="gui-code">make textbox myVar</div>
+    </div>
+    <div class="gui-card">
+      <div class="gui-icon">📊</div>
+      <div class="gui-name">display widgets</div>
+      <div class="gui-desc">label, progress bar, status, badge (info/ok/warn/err), listbox, table, image</div>
+      <div class="gui-code">make badge myVar, "ok", "ok"</div>
+    </div>
+    <div class="gui-card">
+      <div class="gui-icon">📐</div>
+      <div class="gui-name">layout</div>
+      <div class="gui-desc">row, column, separator, spacer — compose complex layouts with simple nesting</div>
+      <div class="gui-code">make row, ... .</div>
+    </div>
+    <div class="gui-card">
+      <div class="gui-icon">🎨</div>
+      <div class="gui-name">canvas &amp; drawing</div>
+      <div class="gui-desc">draw rectangles, circles, lines, text and clear on a canvas widget</div>
+      <div class="gui-code">draw board rect 10, 10, 100, 60</div>
+    </div>
+    <div class="gui-card">
+      <div class="gui-icon">🔘</div>
+      <div class="gui-name">buttons &amp; dialogs</div>
+      <div class="gui-desc">buttons with inline click handlers, alert popups, and confirm dialogs</div>
+      <div class="gui-code">make button "Submit" on click, .</div>
+    </div>
+    <div class="gui-card">
+      <div class="gui-icon">⚡</div>
+      <div class="gui-name">dynamic updates</div>
+      <div class="gui-desc">set any widget's value, text, visibility, color, or disabled state at runtime</div>
+      <div class="gui-code">set myVar visible false</div>
+    </div>
+  </div>
+
+  <div class="syntax-card full" style="margin-top:1rem">
+    <div class="sc-header"><span class="sc-title">full GUI example — login form</span><span class="sc-lang">ware</span></div>
+    <div class="sc-body">
+<span class="gui">make window</span> <span class="str">"Login"</span> <span class="kw">size</span> <span class="num">360</span>, <span class="num">300</span>
+<span class="gui">make label</span> <span class="str">"Username"</span>
+<span class="gui">make textbox</span> <span class="var">username</span>
+<span class="gui">make label</span> <span class="str">"Password"</span>
+<span class="gui">make password</span> <span class="var">password</span>
+<span class="gui">make separator</span>
+<span class="gui">make row</span>,
+    <span class="gui">make button</span> <span class="str">"Login"</span> <span class="kw">on click</span>,
+        <span class="kw">if</span> <span class="var">username</span> <span class="kw">is</span> <span class="str">""</span> <span class="kw">or</span> <span class="var">password</span> <span class="kw">is</span> <span class="str">""</span>,
+            <span class="fn">alert</span> <span class="str">"please fill in all fields."</span>
+        <span class="kw">else</span>,
+            <span class="blt">show</span> <span class="str">f"logging in as </span><span class="op">{</span><span class="var">username</span><span class="op">}</span><span class="str">..."</span>
+            <span class="fn">alert</span> <span class="str">f"welcome, </span><span class="op">{</span><span class="var">username</span><span class="op">}</span><span class="str">!"</span>
+        <span class="op">.</span>
+    <span class="op">.</span>
+    <span class="gui">make button</span> <span class="str">"Clear"</span> <span class="kw">on click</span>,
+        <span class="kw">set</span> <span class="var">username</span> <span class="kw">value</span> <span class="str">""</span>
+        <span class="kw">set</span> <span class="var">password</span> <span class="kw">value</span> <span class="str">""</span>
+    <span class="op">.</span>
+<span class="op">.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL ── -->
+<section class="section" id="install">
+  <div class="section-label">getting started</div>
+  <h2 class="section-title">install <span style="color:var(--mauve)">ware</span></h2>
+
+  <div class="install-opts">
+    <div class="install-card">
+      <div class="ic-header">
+        <span class="ic-title">run the REPL</span>
+        <button class="copy-btn" onclick="copyCode(this, 'python3 ware.py')">copy</button>
+      </div>
+      <div class="ic-body">
+        <span style="color:var(--muted)">$</span> <span style="color:var(--blue)">git clone</span> https://github.com/SkywareSW/ware<br>
+        <span style="color:var(--muted)">$</span> <span style="color:var(--blue)">cd</span> ware<br>
+        <span style="color:var(--muted)">$</span> <span style="color:var(--blue)">python3</span> ware.py
+      </div>
+    </div>
+    <div class="install-card">
+      <div class="ic-header">
+        <span class="ic-title">run a .ware file</span>
+        <button class="copy-btn" onclick="copyCode(this, 'python3 ware.py myapp.ware')">copy</button>
+      </div>
+      <div class="ic-body">
+        <span style="color:var(--muted)">$</span> <span style="color:var(--blue)">python3</span> ware.py <span style="color:var(--yellow)">myapp.ware</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="
+    background: var(--surface);
+    border: 1px solid rgba(203,166,247,0.2);
+    border-radius: 10px; padding: 1.4rem 1.6rem;
+  ">
+    <div style="font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--mauve);margin-bottom:0.8rem;">VS Code extension</div>
+    <p style="font-size:0.75rem;color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+      install <code style="color:var(--teal)">ware-language-2.0.0.vsix</code> for syntax highlighting, the Ware Dark theme, and 35+ code snippets.
+    </p>
+    <div style="font-size:0.72rem;color:var(--text);line-height:2;font-family:'Space Mono',monospace;">
+      <span style="color:var(--muted)">1.</span> open the <span style="color:var(--mauve)">Extensions</span> panel in VS Code<br>
+      <span style="color:var(--muted)">2.</span> click the <span style="color:var(--mauve)">···</span> menu → <span style="color:var(--yellow)">"Install from VSIX…"</span><br>
+      <span style="color:var(--muted)">3.</span> select <span style="color:var(--teal)">ware-language-2.0.0.vsix</span> from the repo
+    </div>
+    <a class="btn btn-ghost" style="margin-top:1rem;display:inline-flex" href="https://github.com/SkywareSW/ware/blob/main/ware-language-2.0.0.vsix" target="_blank">download .vsix ↗</a>
+  </div>
+</section>
+
+<!-- ── RELATED ── -->
+<section class="section">
+  <div class="section-label">ecosystem</div>
+  <h2 class="section-title">related <span style="color:var(--lavender)">repos</span></h2>
+  <div class="related-grid">
+    <a class="related-card rg" href="https://skywaresw.github.io/SkywareOS" target="_blank">
+      <div class="related-top"><span style="font-size:1.2rem">🌌</span><span class="related-arrow">↗</span></div>
+      <div class="related-name" style="color:var(--green)">SkywareOS</div>
+      <div class="related-desc">a linux distribution built around arch — uses ware as its package manager</div>
+    </a>
+    <a class="related-card rb" href="https://skywaresw.github.io/hyprware" target="_blank">
+      <div class="related-top"><span style="font-size:1.2rem">🌙</span><span class="related-arrow">↗</span></div>
+      <div class="related-name" style="color:var(--blue)">hyprware</div>
+      <div class="related-desc">catppuccin mocha hyprland rice — the recommended desktop for skywareOS</div>
+    </a>
+    <a class="related-card rt" href="https://github.com/SkywareSW/SkywareOS-Testing" target="_blank">
+      <div class="related-top"><span style="font-size:1.2rem">🧪</span><span class="related-arrow">↗</span></div>
+      <div class="related-name" style="color:var(--teal)">SkywareOS-Testing</div>
+      <div class="related-desc">bleeding-edge builds and experimental features before they hit stable</div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div>ware — by <a href="https://SkywareSW.github.io/SkywareSW/">SkywareSW</a></div>
+  <div>v4.0 · python runtime · <a href="https://github.com/SkywareSW/ware" target="_blank">github ↗</a></div>
+</footer>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.ref-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function copyHero() {
+    const code = `// a taste of ware\n\nfunction greet which has name, greeting = "Hello",\n    show f"{greeting}, {name}!"\n.\n\nname is "skyware"\ngreet(name)\n\nlangs is ["ware", "python", "shell"]\nfor each lang in langs,\n    show f"  - {lang}"\n.\n\ntry,\n    result is number("oops")\ncatch err,\n    show f"caught: {err}"\n.`;
+    navigator.clipboard?.writeText(code);
+    const btn = document.getElementById('heroCopyBtn');
+    btn.textContent = 'copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  }
+
+  function copyCode(btn, text) {
+    navigator.clipboard?.writeText(text);
+    btn.textContent = 'copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  }
+
+  // scroll fade-in
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        e.target.style.animation = `fadeUp 0.4s ${i * 0.04}s ease forwards`;
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.syntax-card, .gui-card, .install-card, .related-card').forEach(el => {
+    el.style.opacity = '0';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
